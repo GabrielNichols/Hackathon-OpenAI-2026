@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "status": "production-ready",
+  "brand": {
+    "name": "Nexo",
+    "slug": "nexo",
+    "wordmark": "Nexo"
+  },
+  "generatedAt": "2026-08-19T18:12:12.449140+00:00",
+  "files": {
+    "brand.config.json": {
+      "sha256": "af9bc686b36c678cacd3b36c8b5bd18d8cd785f631dc0fa4537ba367f00e646d",
+      "role": "configuration"
+    },
+    "favicon/favicon.ico": {
+      "sha256": "1c9b1b41ee2bcb20d984471c5aa018130e33824ff055e3dc41e0b29702820d44",
+      "role": "ico"
+    },
+    "png/high/nexo-logo-horizontal-black-2400.png": {
+      "sha256": "38218674b4711c8e7966a361a02ee3fe4e0456592f0f8bf6a365792f0233545c",
+      "role": "png-export"
+    },
+    "png/high/nexo-logo-horizontal-color-2400.png": {
+      "sha256": "3dda882e89874c73b69c96744cd191e69e4e16aa2e8fdb48f4b46c54f2a3214b",
+      "role": "png-export"
+    },
+    "png/high/nexo-logo-horizontal-reversed-2400.png": {
+      "sha256": "34129225dc726ef44889f5458d693f0cad5c00d5e50b6096570bd9acfaa72081",
+      "role": "png-export"
+    },
+    "png/high/nexo-logo-horizontal-white-2400.png": {
+      "sha256": "1baf5e4ad7af340471fa1defbab9bcc87f6700a649856007bcfb5aeb1599c28f",
+      "role": "png-export"
+    },
+    "png/high/nexo-signature-vertical-black-1600.png": {
+      "sha256": "e4c38075fb48572abdb8dde2d672076782511d17b6789d3dab52b69084311d48",
+      "role": "png-export"
+    },
+    "png/high/nexo-signature-vertical-color-1600.png": {
+      "sha256": "902057d287c3b5fa9aa748f7fac375c9c5268f628c254f13e321b21ec86cb78a",
+      "role": "png-export"
+    },
+    "png/high/nexo-signature-vertical-reversed-1600.png": {
+      "sha256": "1a5907e4c95b761cd58e55c28ab9484709890b7cb97fd50896ea7f247d691807",
+      "role": "png-export"
+    },
+    "png/high/nexo-signature-vertical-white-1600.png": {
+      "sha256": "0fe1ac54b5618beba434a93955b97a4efec6c0c05293a3ca5103aadda47179ee",
+      "role": "png-export"
+    },
+    "png/high/nexo-symbol-black-2048.png": {
+      "sha256": "c2c8a2bac437e2d87c2226bdb95fe2561da95ff4c6c9b1caa68abdb4bda679db",
+      "role": "png-export"
+    },
+    "png/high/nexo-symbol-color-2048.png": {
+      "sha256": "d192a583bac6a83bddb935a12963948488c9bdc5a4619a4b47f0120726985a04",
+      "role": "png-export"
+    },
+    "png/high/nexo-symbol-reversed-2048.png": {
+      "sha256": "f0005b3aac04f23342c745d83515670b6c5583aba4bd2be46979ef0dc321c558",
+      "role": "png-export"
+    },
+    "png/high/nexo-symbol-white-2048.png": {
+      "sha256": "658bdb0845647051ae4cc2acdb6c0dc1ab60b76075bb339a6e40b7cef7b79b28",
+      "role": "png-export"
+    },
+    "png/low/nexo-logo-horizontal-black-600.png": {
+      "sha256": "97e082239ef0836f24612412dee42fb92095c9edef5418f9bf8fc385c8e681d1",
+      "role": "png-export"
+    },
+    "png/low/nexo-logo-horizontal-color-600.png": {
+      "sha256": "e73a939607508ae8ebf8ff33c6f7bd8f7128a4fa3ea99f2a2c71c99880c8d9bc",
+      "role": "png-export"
+    },
+    "png/low/nexo-logo-horizontal-reversed-600.png": {
+      "sha256": "4b05a6070ad044d1ba644e1c40472b22736abaeeeb4d2ce9467501c751c363f0",
+      "role": "png-export"
+    },
+    "png/low/nexo-logo-horizontal-white-600.png": {
+      "sha256": "b06b19d22e13004faabab025bd299ac565f75e107deda5e2efe1f9577b9c85da",
+      "role": "png-export"
+    },
+    "png/low/nexo-signature-vertical-black-512.png": {
+      "sha256": "51fcce050238c1a89b6076a808a00e49cd021d55501050fd5e0af47bfdfa7635",
+      "role": "png-export"
+    },
+    "png/low/nexo-signature-vertical-color-512.png": {
+      "sha256": "d39fe49cd9cd1466173386d16a01497aee661801358bba7352a2b7db59e241aa",
+      "role": "png-export"
+    },
+    "png/low/nexo-signature-vertical-reversed-512.png": {
+      "sha256": "dd1650a0a5efe6fa63396a53d822ca0055d2ffbeeca1250575670cccb0d9b08b",
+      "role": "png-export"
+    },
+    "png/low/nexo-signature-vertical-white-512.png": {
+      "sha256": "3b1271acafd309e510255b47290afb84faeb953bacd3b235e310a608480d0892",
+      "role": "png-export"
+    },
+    "png/low/nexo-symbol-black-256.png": {
+      "sha256": "bb4f08bb0edddb523096034b48a4539308e123040e7dc6e8c1b64ebbc3777866",
+      "role": "png-export"
+    },
+    "png/low/nexo-symbol-color-256.png": {
+      "sha256": "a16e2d8659b4f345926a5eddd2b0de742ddf9c75666974d104b279f6a7598488",
+      "role": "png-export"
+    },
+    "png/low/nexo-symbol-reversed-256.png": {
+      "sha256": "eb53d29c140569dbd0703af52e1bae613553c4db3ef2f78750a5dcea02a381d0",
+      "role": "png-export"
+    },
+    "png/low/nexo-symbol-white-256.png": {
+      "sha256": "01d63666d27713757567ea71e5d2a92661094ddb570ea406d8934af368bbd22a",
+      "role": "png-export"
+    },
+    "reference/selected-mark.png": {
+      "sha256": "0b1a905aa96ca4ba1f3cadbefe30bf4d81eb84cfb2f24bb1622b4ef8155038df",
+      "role": "selected-reference"
+    },
+    "svg/nexo-logo-horizontal-black.svg": {
+      "sha256": "59b9e59b8038c8cc6830a6a3a5da679270b1c3a5bad95e245a58301cd8b0c532",
+      "role": "svg-master:horizontalMonochrome"
+    },
+    "svg/nexo-logo-horizontal-reversed.svg": {
+      "sha256": "c9b3e1b9c0af928f15f23a74ddd7dcde8ab08c4784df776543fc2edf2f998da1",
+      "role": "svg-master:horizontalReversed"
+    },
+    "svg/nexo-logo-horizontal-white.svg": {
+      "sha256": "11ff0afd696c7204c9303b097b05b3aa45a474cfc41e0cc95c9b73a2af2839b7",
+      "role": "svg-master:horizontalWhite"
+    },
+    "svg/nexo-logo-horizontal.svg": {
+      "sha256": "c009d9911156c9670067c4f38de9a8cd98bc8780c9e8bcb21b122e81f8a6730e",
+      "role": "svg-master:horizontal"
+    },
+    "svg/nexo-signature-vertical-black.svg": {
+      "sha256": "fc4b11bd5cfd978ad33edd17d313b2ea2fb11dca3f53a06b0b165dac4a9b66ee",
+      "role": "svg-master:verticalMonochrome"
+    },
+    "svg/nexo-signature-vertical-reversed.svg": {
+      "sha256": "38655a9830d3f12dc581fc1f5ec03fdba8c52d53bae81e52383091249947a408",
+      "role": "svg-master:verticalReversed"
+    },
+    "svg/nexo-signature-vertical-white.svg": {
+      "sha256": "aeed937dc4873d0018965eb2ac6526984d86f551646010f7ada59305c57cec5f",
+      "role": "svg-master:verticalWhite"
+    },
+    "svg/nexo-signature-vertical.svg": {
+      "sha256": "4e75d9a63e87a95af13954932c2754f92a6b8b6c16402b40e0c95f6c5befc83b",
+      "role": "svg-master:vertical"
+    },
+    "svg/nexo-symbol-black.svg": {
+      "sha256": "8cfd64ec57bfbbee661cb37b115dec431aec2993c1d55bc6d218a43d0f7d0c42",
+      "role": "svg-master:symbolBlack"
+    },
+    "svg/nexo-symbol-reversed.svg": {
+      "sha256": "b704ff9682f608dd1ba966bf3ffcede089705c5d8b3862d9a4c01bd38bf19628",
+      "role": "svg-master:symbolReversed"
+    },
+    "svg/nexo-symbol-small.svg": {
+      "sha256": "5f37cef4bf3ca3a4db30f499b99096e3fb91228e7805bdf8d742edc07e39023a",
+      "role": "svg-master:symbolSmall"
+    },
+    "svg/nexo-symbol-white.svg": {
+      "sha256": "3a1b6783be9e1e0b5f01e6d4bbe416b97f7bbe66beba17309f5ebb478980890f",
+      "role": "svg-master:symbolWhite"
+    },
+    "svg/nexo-symbol.svg": {
+      "sha256": "1dd6d2c2fea110415f6c3607099bd721e58670577605b38af82d14424ded1767",
+      "role": "svg-master:symbol"
+    },
+    "validation/fidelity-report.json": {
+      "sha256": "f595f188d5cfcf8b5128158df67c3abe053c186c298c90ee2a4b7b6b8025850a",
+      "role": "fidelity-report"
+    },
+    "validation/human-review.json": {
+      "sha256": "09a1895f076751c7abcf45b4c27b359675f575c5cbec39761a01c572fac50efc",
+      "role": "visual-review"
+    },
+    "validation/package-audit.json": {
+      "sha256": "08e16fa0c16021041ad4bd4d2f0b3ea9982d3f5bbd25deefff4c536c23c9f588",
+      "role": "package-audit"
+    }
+  }
+}

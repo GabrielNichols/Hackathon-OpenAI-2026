@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "name": "Nexo",
+    "slug": "nexo",
+    "wordmark": "Nexo"
+  },
+  "concept": "Rota de evidência interrompida por um checkpoint humano obrigatório.",
+  "palette": {
+    "primary": "#10262C",
+    "secondary": "#0E7C72",
+    "signal": "#C8F45D",
+    "surface": "#F6F8F5",
+    "allowedColors": [
+      "#10262C",
+      "#0E7C72",
+      "#C8F45D",
+      "#F6F8F5",
+      "#000000",
+      "#FFFFFF"
+    ]
+  },
+  "references": [
+    {
+      "path": "reference/source.png",
+      "sha256": "cdf9a849b13d6d2228517f44ae6093d574e824089db82118b1e68ab11fe5b297",
+      "role": "imagegen-identity-reference",
+      "width": 1672,
+      "height": 941,
+      "selectedCrop": [
+        280,
+        290,
+        644,
+        597
+      ],
+      "selectedPath": "reference/selected-mark.png"
+    }
+  ],
+  "selectedReference": "reference/selected-mark.png",
+  "symbolRoi": "reference/selected-mark.png",
+  "masters": {
+    "symbol": "svg/nexo-symbol.svg",
+    "symbolSmall": "svg/nexo-symbol-small.svg",
+    "symbolBlack": "svg/nexo-symbol-black.svg",
+    "symbolWhite": "svg/nexo-symbol-white.svg",
+    "symbolReversed": "svg/nexo-symbol-reversed.svg",
+    "horizontal": "svg/nexo-logo-horizontal.svg",
+    "horizontalMonochrome": "svg/nexo-logo-horizontal-black.svg",
+    "horizontalWhite": "svg/nexo-logo-horizontal-white.svg",
+    "horizontalReversed": "svg/nexo-logo-horizontal-reversed.svg",
+    "vertical": "svg/nexo-signature-vertical.svg",
+    "verticalMonochrome": "svg/nexo-signature-vertical-black.svg",
+    "verticalWhite": "svg/nexo-signature-vertical-white.svg",
+    "verticalReversed": "svg/nexo-signature-vertical-reversed.svg"
+  },
+  "requiredMasters": [
+    "symbol",
+    "symbolSmall",
+    "symbolBlack",
+    "symbolWhite",
+    "symbolReversed",
+    "horizontal",
+    "horizontalMonochrome",
+    "horizontalWhite",
+    "horizontalReversed",
+    "vertical",
+    "verticalMonochrome",
+    "verticalWhite",
+    "verticalReversed"
+  ],
+  "exports": [
+    {
+      "source": "svg/nexo-symbol.svg",
+      "output": "png/high/nexo-symbol-color-2048.png",
+      "width": 2048,
+      "height": 2048,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol.svg",
+      "output": "png/low/nexo-symbol-color-256.png",
+      "width": 256,
+      "height": 256,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-black.svg",
+      "output": "png/high/nexo-symbol-black-2048.png",
+      "width": 2048,
+      "height": 2048,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-black.svg",
+      "output": "png/low/nexo-symbol-black-256.png",
+      "width": 256,
+      "height": 256,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-white.svg",
+      "output": "png/high/nexo-symbol-white-2048.png",
+      "width": 2048,
+      "height": 2048,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-white.svg",
+      "output": "png/low/nexo-symbol-white-256.png",
+      "width": 256,
+      "height": 256,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-reversed.svg",
+      "output": "png/high/nexo-symbol-reversed-2048.png",
+      "width": 2048,
+      "height": 2048,
+      "background": "#10262C",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-symbol-reversed.svg",
+      "output": "png/low/nexo-symbol-reversed-256.png",
+      "width": 256,
+      "height": 256,
+      "background": "#10262C",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal.svg",
+      "output": "png/high/nexo-logo-horizontal-color-2400.png",
+      "width": 2400,
+      "height": 768,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal.svg",
+      "output": "png/low/nexo-logo-horizontal-color-600.png",
+      "width": 600,
+      "height": 192,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-black.svg",
+      "output": "png/high/nexo-logo-horizontal-black-2400.png",
+      "width": 2400,
+      "height": 768,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-black.svg",
+      "output": "png/low/nexo-logo-horizontal-black-600.png",
+      "width": 600,
+      "height": 192,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-white.svg",
+      "output": "png/high/nexo-logo-horizontal-white-2400.png",
+      "width": 2400,
+      "height": 768,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-white.svg",
+      "output": "png/low/nexo-logo-horizontal-white-600.png",
+      "width": 600,
+      "height": 192,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-reversed.svg",
+      "output": "png/high/nexo-logo-horizontal-reversed-2400.png",
+      "width": 2400,
+      "height": 768,
+      "background": "#10262C",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-logo-horizontal-reversed.svg",
+      "output": "png/low/nexo-logo-horizontal-reversed-600.png",
+      "width": 600,
+      "height": 192,
+      "background": "#10262C",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical.svg",
+      "output": "png/high/nexo-signature-vertical-color-1600.png",
+      "width": 1600,
+      "height": 1600,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical.svg",
+      "output": "png/low/nexo-signature-vertical-color-512.png",
+      "width": 512,
+      "height": 512,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-black.svg",
+      "output": "png/high/nexo-signature-vertical-black-1600.png",
+      "width": 1600,
+      "height": 1600,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-black.svg",
+      "output": "png/low/nexo-signature-vertical-black-512.png",
+      "width": 512,
+      "height": 512,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-white.svg",
+      "output": "png/high/nexo-signature-vertical-white-1600.png",
+      "width": 1600,
+      "height": 1600,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-white.svg",
+      "output": "png/low/nexo-signature-vertical-white-512.png",
+      "width": 512,
+      "height": 512,
+      "background": "transparent",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-reversed.svg",
+      "output": "png/high/nexo-signature-vertical-reversed-1600.png",
+      "width": 1600,
+      "height": 1600,
+      "background": "#10262C",
+      "required": true
+    },
+    {
+      "source": "svg/nexo-signature-vertical-reversed.svg",
+      "output": "png/low/nexo-signature-vertical-reversed-512.png",
+      "width": 512,
+      "height": 512,
+      "background": "#10262C",
+      "required": true
+    }
+  ],
+  "favicon": {
+    "source": "svg/nexo-symbol-small.svg",
+    "fallbackSource": "svg/nexo-symbol.svg",
+    "sizes": [
+      16,
+      32,
+      48,
+      64,
+      128,
+      256
+    ],
+    "directory": "favicon",
+    "ico": "favicon/favicon.ico"
+  },
+  "validation": {
+    "candidate": "svg/nexo-symbol.svg",
+    "reference": "reference/selected-mark.png",
+    "scaleAxis": "height",
+    "anchor": "left-center",
+    "thresholds": {
+      "minimumIou": 0.68,
+      "maximumBboxDeltaPercent": 8.0,
+      "maximumCentroidDeltaPercent": 4.0
+    },
+    "report": "validation/fidelity-report.json",
+    "humanReview": "validation/human-review.json"
+  },
+  "topologyInvariants": {
+    "foregroundComponents": 3,
+    "holes": 0,
+    "entries": 1,
+    "exits": 1,
+    "requiredCheckpoint": 1,
+    "crossings": 0
+  },
+  "rules": {
+    "noEmbeddedRaster": true,
+    "noLiveText": true,
+    "noExternalReferences": true,
+    "noGradients": true,
+    "noFilters": true,
+    "noTransparencyEffects": true
+  }
+}

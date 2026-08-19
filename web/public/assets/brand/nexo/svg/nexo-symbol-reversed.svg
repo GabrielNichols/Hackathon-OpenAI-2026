@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Símbolo Nexo reverso para fundo escuro</title>
+  <g>
+    <path d="M10 10H20L28.5 22L22.5 28.5L19 24V50Q19 54 15 54H10Q6 54 6 50V14Q6 10 10 10Z" fill="#FFFFFF"/>
+    <path d="M41.5 36L45 40V14Q45 10 49 10H54Q58 10 58 14V50Q58 54 54 54H44L36 42Z" fill="#FFFFFF"/>
+    <rect x="27" y="28" width="10" height="10" rx="2" fill="#C8F45D"/>
+  </g>
+</svg>
