@@ -128,6 +128,7 @@ async def test_optimistic_lock_rejects_stale_version(
             replace(first_copy, state="READY", updated_at=NOW + timedelta(minutes=1)),
             expected_version=first_copy.version,
         )
+        await first.audit.append([audit_event()])
         await first.commit()
 
         with pytest.raises(OptimisticLockConflict):

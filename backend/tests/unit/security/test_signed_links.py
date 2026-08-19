@@ -68,7 +68,47 @@ def test_signed_link_rejects_wrong_tenant_and_tampering() -> None:
 def test_nonce_can_be_consumed_only_once() -> None:
     registry = InMemoryNonceRegistry()
     item = payload()
-    registry.consume(item)
+    assert registry.consume(item, consumed_at=NOW)
+    assert not registry.consume(item, consumed_at=NOW)
+
+
+@pytest.mark.asyncio
+async def test_verify_and_consume_rejects_replay() -> None:
+    registry = InMemoryNonceRegistry()
+    token = SERVICE.issue(payload())
+    decoded = await SERVICE.verify_and_consume(
+        token,
+        registry=registry,
+        expected_purpose="supplier_profile_review",
+        expected_tenant_id="org_demo",
+        expected_subject_id="sup_alpha",
+        now=NOW,
+    )
+    assert decoded.nonce == "nonce-1"
+
     with pytest.raises(SignedLinkError) as raised:
-        registry.consume(item)
+        await SERVICE.verify_and_consume(
+            token,
+            registry=registry,
+            expected_purpose="supplier_profile_review",
+            expected_tenant_id="org_demo",
+            now=NOW,
+        )
     assert raised.value.code == ErrorCode.LINK_INVALID
+
+
+@pytest.mark.asyncio
+async def test_verify_and_consume_supports_durable_async_registry() -> None:
+    class AsyncRegistry:
+        async def consume(self, item: SignedLinkPayload, *, consumed_at: datetime) -> bool:
+            assert consumed_at == NOW
+            return item.nonce == "nonce-1"
+
+    decoded = await SERVICE.verify_and_consume(
+        SERVICE.issue(payload()),
+        registry=AsyncRegistry(),
+        expected_purpose="supplier_profile_review",
+        expected_tenant_id="org_demo",
+        now=NOW,
+    )
+    assert decoded.subject_id == "sup_alpha"

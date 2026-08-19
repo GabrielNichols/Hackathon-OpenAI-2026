@@ -52,6 +52,17 @@ class IdempotencyInProgress(PersistenceError):
         self.key = key
 
 
+class AuditInvariantViolation(PersistenceError):
+    """Raised when an aggregate transition has no matching audit event."""
+
+    def __init__(self, transitions: frozenset[tuple[str, str, int]]) -> None:
+        rendered = ", ".join(
+            f"{kind}:{item_id}:v{version}" for kind, item_id, version in sorted(transitions)
+        )
+        super().__init__(f"aggregate transitions missing audit events: {rendered}")
+        self.transitions = transitions
+
+
 class OutboxStateConflict(PersistenceError):
     """Raised when an outbox transition is invalid for its persisted status."""
 

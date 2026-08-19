@@ -155,19 +155,23 @@ class OutboxRepository:
         self,
         item_id: str,
         *,
+        worker_id: str,
+        attempt_count: int,
         error: str,
         next_attempt_at: datetime,
         now: datetime,
     ) -> OutboxItem:
         model = await self._required(item_id, for_update=True)
-        if model.status != OutboxStatus.PROCESSING.value:
-            raise OutboxStateConflict(item_id, model.status, OutboxStatus.FAILED.value)
+        current_time = _as_utc(now)
+        self._assert_active_lease(
+            model, worker_id=worker_id, attempt_count=attempt_count, now=current_time
+        )
         model.status = OutboxStatus.FAILED.value
         model.last_error = error.strip()[:2000]
         model.next_attempt_at = _as_utc(next_attempt_at)
         model.locked_by = None
         model.locked_until = None
-        model.updated_at = _as_utc(now)
+        model.updated_at = current_time
         await self._session.flush()
         return self._to_record(model)
 
@@ -175,6 +179,8 @@ class OutboxRepository:
         self,
         item_id: str,
         *,
+        worker_id: str,
+        attempt_count: int,
         external_delivery_id: str,
         delivered_at: datetime,
     ) -> OutboxItem:
@@ -183,9 +189,10 @@ class OutboxRepository:
             if model.external_delivery_id != external_delivery_id:
                 raise OutboxStateConflict(item_id, model.status, "DELIVERED_WITH_DIFFERENT_ACK")
             return self._to_record(model)
-        if model.status != OutboxStatus.PROCESSING.value:
-            raise OutboxStateConflict(item_id, model.status, OutboxStatus.DELIVERED.value)
         timestamp = _as_utc(delivered_at)
+        self._assert_active_lease(
+            model, worker_id=worker_id, attempt_count=attempt_count, now=timestamp
+        )
         model.status = OutboxStatus.DELIVERED.value
         model.external_delivery_id = external_delivery_id
         model.delivered_at = timestamp
@@ -196,6 +203,24 @@ class OutboxRepository:
         model.locked_until = None
         await self._session.flush()
         return self._to_record(model)
+
+    def _assert_active_lease(
+        self,
+        model: OutboxItemModel,
+        *,
+        worker_id: str,
+        attempt_count: int,
+        now: datetime,
+    ) -> None:
+        lease_is_current = (
+            model.status == OutboxStatus.PROCESSING.value
+            and model.locked_by == worker_id
+            and model.attempt_count == attempt_count
+            and model.locked_until is not None
+            and _as_utc(model.locked_until) > now
+        )
+        if not lease_is_current:
+            raise OutboxStateConflict(model.id, model.status, "STALE_OR_FOREIGN_LEASE")
 
     async def _required(self, item_id: str, *, for_update: bool = False) -> OutboxItemModel:
         statement = select(OutboxItemModel).where(

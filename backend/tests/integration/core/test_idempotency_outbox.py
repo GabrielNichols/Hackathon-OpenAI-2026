@@ -142,6 +142,8 @@ async def test_outbox_retry_does_not_duplicate_business_event(
         assert claimed[0].attempt_count == 1
         await worker.outbox.mark_failed(
             claimed[0].id,
+            worker_id="worker-1",
+            attempt_count=claimed[0].attempt_count,
             error="gateway unavailable",
             next_attempt_at=NOW + timedelta(minutes=1),
             now=NOW,
@@ -158,6 +160,8 @@ async def test_outbox_retry_does_not_duplicate_business_event(
         assert retried[0].attempt_count == 2
         delivered = await retry_worker.outbox.mark_delivered(
             retried[0].id,
+            worker_id="worker-2",
+            attempt_count=retried[0].attempt_count,
             external_delivery_id="provider-ack-1",
             delivered_at=NOW + timedelta(minutes=2),
         )
@@ -172,6 +176,8 @@ async def test_outbox_retry_does_not_duplicate_business_event(
         )
         repeated_ack = await verification.outbox.mark_delivered(
             "out_message_1",
+            worker_id="worker-2",
+            attempt_count=2,
             external_delivery_id="provider-ack-1",
             delivered_at=NOW + timedelta(hours=1),
         )

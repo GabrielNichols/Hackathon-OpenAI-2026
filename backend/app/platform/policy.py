@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Protocol
 
 from app.contracts import (
     ActorType,
@@ -27,7 +27,27 @@ def _deny(
     )
 
 
+class PersistedHumanApprovalVerifier(Protocol):
+    """Trusted boundary that verifies an approval against persisted state."""
+
+    async def is_approved(
+        self,
+        *,
+        tenant_id: str,
+        approval_id: str,
+        action: str,
+        aggregate_type: str,
+        aggregate_id: str,
+    ) -> bool: ...
+
+
 class DeterministicPolicyEngine:
+    def __init__(
+        self,
+        approval_verifier: PersistedHumanApprovalVerifier | None = None,
+    ) -> None:
+        self._approval_verifier = approval_verifier
+
     async def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
         policy = request.procurement_policy
         arguments = request.arguments
@@ -104,11 +124,26 @@ class DeterministicPolicyEngine:
             if arguments.get("topic") not in policy.get("allowed_negotiation_topics", []):
                 return _deny("NEGOTIATION_TOPIC_NOT_ALLOWED", "Negotiation topic is forbidden")
 
-        if request.action == "send_award" and not arguments.get("human_approval_persisted"):
-            return _deny(
-                "AWARD_REQUIRES_HUMAN_APPROVAL",
-                "Award requires a persisted human approval",
-            )
+        if request.action == "send_award":
+            approval_id = arguments.get("approval_id")
+            approval_verified = False
+            if (
+                isinstance(approval_id, str)
+                and approval_id.strip()
+                and self._approval_verifier is not None
+            ):
+                approval_verified = await self._approval_verifier.is_approved(
+                    tenant_id=request.resource_tenant_id,
+                    approval_id=approval_id,
+                    action=request.action,
+                    aggregate_type=request.aggregate_type,
+                    aggregate_id=request.aggregate_id,
+                )
+            if not approval_verified:
+                return _deny(
+                    "AWARD_REQUIRES_HUMAN_APPROVAL",
+                    "Award requires a verified persisted human approval",
+                )
 
         if request.action == "send_supplier_follow_up" and arguments.get(
             "follow_up_count", 0

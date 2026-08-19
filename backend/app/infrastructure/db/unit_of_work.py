@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from types import TracebackType
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.infrastructure.outbox.repository import OutboxRepository
 
+from .errors import AuditInvariantViolation
+from .records import AggregateRecord, AuditEventRecord
 from .repositories import (
     AggregateRepository,
     AuditEventRepository,
@@ -74,7 +77,25 @@ class SqlAlchemyUnitOfWork:
             await session.close()
             self._session = None
 
+    async def save_transition(
+        self,
+        record: AggregateRecord,
+        *,
+        expected_version: int,
+        event: AuditEventRecord,
+    ) -> AggregateRecord:
+        expected_key = (record.aggregate_type, record.aggregate_id, expected_version + 1)
+        event_key = (event.aggregate_type, event.aggregate_id, event.aggregate_version)
+        if event_key != expected_key:
+            raise AuditInvariantViolation(frozenset({expected_key}))
+        persisted = await self.aggregates.save(record, expected_version=expected_version)
+        await self.audit.append([replace(event, aggregate_version=persisted.version)])
+        return persisted
+
     async def commit(self) -> None:
+        missing_audit = self.aggregates.saved_transition_keys - self.audit.appended_transition_keys
+        if missing_audit:
+            raise AuditInvariantViolation(missing_audit)
         await self.session.commit()
         self._committed = True
 

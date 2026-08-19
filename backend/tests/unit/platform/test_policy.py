@@ -75,6 +75,43 @@ async def test_policy_requires_fields_before_sourcing() -> None:
     assert decision.constraints == {"missing_fields": ["event_date"]}
 
 
+@pytest.mark.asyncio
+async def test_award_rejects_untrusted_boolean_approval_claim() -> None:
+    decision = await DeterministicPolicyEngine().authorize(
+        request(action="send_award", arguments={"human_approval_persisted": True})
+    )
+    assert not decision.allowed
+    assert decision.reason_code == "AWARD_REQUIRES_HUMAN_APPROVAL"
+
+
+class ApprovalVerifierFake:
+    def __init__(self, approved: bool) -> None:
+        self.approved = approved
+        self.calls: list[dict[str, str]] = []
+
+    async def is_approved(self, **scope: str) -> bool:
+        self.calls.append(scope)
+        return self.approved
+
+
+@pytest.mark.asyncio
+async def test_award_requires_trusted_persisted_approval_verifier() -> None:
+    verifier = ApprovalVerifierFake(approved=True)
+    decision = await DeterministicPolicyEngine(verifier).authorize(
+        request(action="send_award", arguments={"approval_id": "apr_human_1"})
+    )
+    assert decision.allowed
+    assert verifier.calls == [
+        {
+            "tenant_id": "org_buyer",
+            "approval_id": "apr_human_1",
+            "action": "send_award",
+            "aggregate_type": "procurement_request",
+            "aggregate_id": "pr_demo",
+        }
+    ]
+
+
 class AuditFake:
     def __init__(self) -> None:
         self.events = []

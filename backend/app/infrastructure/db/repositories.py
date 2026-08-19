@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import AuditEventDTO
+from app.infrastructure.security.signed_links import SignedLinkPayload
 
 from .errors import (
     IdempotencyConflict,
@@ -40,12 +41,16 @@ from .records import (
 FORBIDDEN_AUDIT_KEYS = frozenset(
     {
         "access_token",
+        "api_key",
         "authorization",
+        "client_secret",
+        "credential",
         "nonce",
         "password",
         "refresh_token",
         "secret",
         "signed_link",
+        "signed_url",
         "token",
     }
 )
@@ -108,6 +113,14 @@ class TenantScopedRepository:
 
 
 class AggregateRepository(TenantScopedRepository):
+    def __init__(self, session: AsyncSession, tenant_id: str) -> None:
+        super().__init__(session, tenant_id)
+        self._saved_transition_keys: set[tuple[str, str, int]] = set()
+
+    @property
+    def saved_transition_keys(self) -> frozenset[tuple[str, str, int]]:
+        return frozenset(self._saved_transition_keys)
+
     async def get(self, aggregate_type: str, aggregate_id: str) -> AggregateRecord | None:
         model = await self._session.get(
             AggregateRecordModel,
@@ -155,6 +168,9 @@ class AggregateRepository(TenantScopedRepository):
         result = await self._session.execute(statement)
         if result.rowcount != 1:  # type: ignore[attr-defined]
             raise OptimisticLockConflict(record.aggregate_id, expected_version)
+        self._saved_transition_keys.add(
+            (record.aggregate_type, record.aggregate_id, expected_version + 1)
+        )
         return replace(record, version=expected_version + 1, updated_at=_as_utc(record.updated_at))
 
     @staticmethod
@@ -172,12 +188,24 @@ class AggregateRepository(TenantScopedRepository):
 
 
 class AuditEventRepository(TenantScopedRepository):
+    def __init__(self, session: AsyncSession, tenant_id: str) -> None:
+        super().__init__(session, tenant_id)
+        self._appended_transition_keys: set[tuple[str, str, int]] = set()
+
+    @property
+    def appended_transition_keys(self) -> frozenset[tuple[str, str, int]]:
+        return frozenset(self._appended_transition_keys)
+
     async def append(self, events: Sequence[AuditEventRecord | AuditEventDTO]) -> None:
         for event in events:
             payload = canonical_json_object(event.payload)
             _assert_audit_payload_safe(payload)
             actor_type = str(event.actor_type)
             aggregate_version = getattr(event, "aggregate_version", None)
+            if aggregate_version is not None:
+                self._appended_transition_keys.add(
+                    (event.aggregate_type, event.aggregate_id, aggregate_version)
+                )
             self._session.add(
                 AuditEventModel(
                     event_id=event.event_id,
@@ -337,7 +365,23 @@ class IdempotencyRepository(TenantScopedRepository):
 
 
 class ConsumedLinkNonceRepository(TenantScopedRepository):
-    async def consume(self, record: ConsumedLinkNonce) -> bool:
+    async def consume(
+        self,
+        record: ConsumedLinkNonce | SignedLinkPayload,
+        *,
+        consumed_at: datetime | None = None,
+    ) -> bool:
+        if isinstance(record, SignedLinkPayload):
+            if consumed_at is None:
+                raise ValueError("consumed_at is required for a signed-link payload")
+            record = ConsumedLinkNonce(
+                tenant_id=record.tenant_id,
+                purpose=record.purpose,
+                nonce_hash=hashlib.sha256(record.nonce.encode("utf-8")).hexdigest(),
+                subject_id=record.subject_id,
+                expires_at=record.expires_at,
+                consumed_at=consumed_at,
+            )
         self._assert_tenant(record.tenant_id)
         expires_at = _as_utc(record.expires_at)
         consumed_at = _as_utc(record.consumed_at)
