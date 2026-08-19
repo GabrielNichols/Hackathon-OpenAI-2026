@@ -3,6 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
+
 from app.modules.procurement_requests import (
     LocalPortugueseProcurementInterpreter,
     ProcurementRequestDraft,

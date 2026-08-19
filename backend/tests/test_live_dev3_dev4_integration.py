@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+
 from app.live.config import LiveSettings
 from app.live.server import create_live_app
 from app.modules.rfq.dev3_adapter import Dev3RFQExecutionAdapter

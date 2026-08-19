@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
 import pytest
+
 from app.modules.messaging.gateway import (
     DeliveryState,
     GatewayError,

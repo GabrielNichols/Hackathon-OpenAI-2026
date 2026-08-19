@@ -356,10 +356,10 @@ RequestLike = ProcurementRequestDraft | ProcurementRequestReady
 
 
 __all__ = [
+    "MAX_BUYER_MESSAGE_CHARS",
     "Clarification",
     "FieldConflict",
     "InterpretationProviderMetadata",
-    "MAX_BUYER_MESSAGE_CHARS",
     "ProcurementInterpretationResult",
     "ProcurementPlan",
     "ProcurementPlanPatch",

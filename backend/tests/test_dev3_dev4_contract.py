@@ -5,10 +5,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import pytest
+from pydantic import BaseModel, ConfigDict
+
 from app.bootstrap import create_execution_service
 from app.modules.rfq.dev3_adapter import Dev3RFQExecutionAdapter
 from app.shared.errors import DomainError, ErrorCode
-from pydantic import BaseModel, ConfigDict
 
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 

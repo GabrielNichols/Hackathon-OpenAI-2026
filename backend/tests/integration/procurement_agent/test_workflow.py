@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+
 from app.modules.procurement_agent.demo import create_demo_container
 from app.modules.procurement_agent.models import AgentStopReason
 from app.modules.procurement_requests import InterpretationProviderError

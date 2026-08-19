@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+
 from app.dev4_demo import create_app
 from app.shared.errors import DomainError, ErrorCode
 

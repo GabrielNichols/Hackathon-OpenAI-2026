@@ -1,8 +1,9 @@
 import pytest
+from httpx import ASGITransport, AsyncClient
+
 from app.main import create_app
 from app.modules.procurement_agent.demo import create_demo_container
 from app.modules.procurement_requests import MAX_BUYER_MESSAGE_CHARS
-from httpx import ASGITransport, AsyncClient
 
 from .procurement_agent.test_workflow import COMPLETE_MESSAGE
 

@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import BaseModel, ConfigDict
+
 from app.modules.buyer_timeline.audit import InMemoryAuditLog
 from app.modules.procurement_agent.adapters import (
     FixedClock,
@@ -15,7 +17,6 @@ from app.modules.procurement_agent.tool_registry import (
     ToolSpec,
     ToolStateError,
 )
-from pydantic import BaseModel, ConfigDict
 
 
 class EchoInput(BaseModel):

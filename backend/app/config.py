@@ -119,11 +119,11 @@ class OpenAIInterpreterSettings:
 
 
 __all__ = [
-    "ApplicationConfigurationError",
     "DEFAULT_OPENAI_KEY_FILE",
+    "PROJECT_ROOT",
+    "ApplicationConfigurationError",
     "InterpreterProvider",
     "OpenAIInterpreterSettings",
-    "PROJECT_ROOT",
     "load_interpreter_provider",
     "load_openai_api_key",
 ]

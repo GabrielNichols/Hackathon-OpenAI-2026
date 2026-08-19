@@ -5,6 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
+
 from app.config import OpenAIInterpreterSettings
 from app.modules.procurement_requests import OpenAIProcurementInterpreter
 

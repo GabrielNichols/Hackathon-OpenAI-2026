@@ -4,6 +4,7 @@ import hashlib
 import json
 from datetime import UTC, datetime
 from itertools import count
+from typing import ClassVar
 from uuid import uuid4
 
 from app.modules.procurement_agent.models import (
@@ -47,7 +48,7 @@ class SequentialIdGenerator:
 class PrototypePolicy:
     """Small deterministic adapter; it can be replaced by Dev 1's PolicyPort."""
 
-    _allowed_actions: dict[str, frozenset[str]] = {
+    _allowed_actions: ClassVar[dict[str, frozenset[str]]] = {
         "READY": frozenset({"start_sourcing"}),
         "SOURCING": frozenset(
             {

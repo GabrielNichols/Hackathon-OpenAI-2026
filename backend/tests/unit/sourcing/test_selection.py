@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
+
 from app.modules.sourcing import (
     DeterministicSupplierSelector,
     EligibilityCheck,
@@ -9,7 +11,6 @@ from app.modules.sourcing import (
     SupplierEligibilityResult,
     select_rfq_recipients,
 )
-from pydantic import ValidationError
 
 
 def result(supplier_id: str, decision: EligibilityDecision) -> SupplierEligibilityResult:

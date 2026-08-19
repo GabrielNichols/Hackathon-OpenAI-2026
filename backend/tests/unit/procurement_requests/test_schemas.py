@@ -2,13 +2,14 @@ from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 import pytest
+from pydantic import ValidationError
+
 from app.modules.procurement_requests import (
     MAX_BUYER_MESSAGE_CHARS,
     ProcurementRequestDraft,
     ProcurementRequestPatch,
     ProcurementRequestStatus,
 )
-from pydantic import ValidationError
 
 
 def test_patch_distinguishes_omitted_from_explicit_false_and_zero() -> None:

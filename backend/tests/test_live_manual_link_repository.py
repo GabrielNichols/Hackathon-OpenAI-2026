@@ -9,6 +9,8 @@ from pathlib import Path
 from threading import Barrier
 
 import pytest
+from sqlalchemy.orm import Session, sessionmaker
+
 from app.live.database import (
     create_database_engine,
     create_schema,
@@ -28,7 +30,6 @@ from app.modules.messaging.manual_link import (
     ManualLinkDeliveryRecord,
     ManualLinkDeliveryRepository,
 )
-from sqlalchemy.orm import Session, sessionmaker
 
 NOW = datetime(2026, 8, 19, 18, 0, tzinfo=UTC)
 PII_SECRET = "test-only-pii-hash-secret-with-at-least-32-bytes"

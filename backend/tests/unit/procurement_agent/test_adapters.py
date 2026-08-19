@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
+
 from app.modules.procurement_agent.adapters import (
     FixedClock,
     IdempotencyConflictError,

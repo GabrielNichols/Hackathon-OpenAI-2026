@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
 import pytest
+
 from app.bootstrap import create_execution_service
 from app.live.codec import decode_state, encode_state
 from app.modules.rfq.contracts import (

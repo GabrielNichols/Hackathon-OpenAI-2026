@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
+from pydantic import ValidationError
+
 from app.modules.sourcing import (
     EligibilityCheck,
     EligibilityDecision,
@@ -12,7 +14,6 @@ from app.modules.sourcing import (
     SupplierEligibilityResult,
     SupplierSearchCriteria,
 )
-from pydantic import ValidationError
 
 NOW = datetime(2026, 8, 19, 12, tzinfo=UTC)
 

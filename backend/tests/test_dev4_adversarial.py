@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import pytest
+
 from app.modules.messaging.gateway import FakeDeliveryGateway
 from app.modules.rfq.contracts import (
     CommandContextDTO,

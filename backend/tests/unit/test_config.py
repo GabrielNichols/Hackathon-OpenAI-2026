@@ -2,6 +2,7 @@ import traceback
 from pathlib import Path
 
 import pytest
+
 from app.config import (
     ApplicationConfigurationError,
     OpenAIInterpreterSettings,

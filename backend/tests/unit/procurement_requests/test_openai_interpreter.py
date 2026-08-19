@@ -8,6 +8,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
+from openai import OpenAIError
+
 from app.config import OpenAIInterpreterSettings
 from app.modules.procurement_requests import (
     MAX_BUYER_MESSAGE_CHARS,
@@ -23,7 +25,6 @@ from app.modules.procurement_requests.openai_interpreter import (
     OpenAIProcurementExtraction,
 )
 from app.modules.procurement_requests.schemas import ProcurementRequestPatch
-from openai import OpenAIError
 
 
 class FixedClock:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
+
 from app.live.database import (
     create_database_engine,
     create_schema,

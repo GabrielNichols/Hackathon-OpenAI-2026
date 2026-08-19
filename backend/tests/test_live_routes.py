@@ -6,6 +6,8 @@ from datetime import UTC, date, datetime, timedelta
 
 import httpx
 import pytest
+from fastapi import FastAPI, Request
+
 from app.live.facade import (
     ActionReceipt,
     ApprovalPage,
@@ -30,7 +32,6 @@ from app.live.facade import (
 )
 from app.live.router import create_live_router
 from app.live.security import CsrfProtector
-from fastapi import FastAPI, Request
 
 NOW = datetime(2026, 8, 19, 16, 0, tzinfo=UTC)
 HUMAN = HumanActor(tenant_id="org-real", user_id="buyer-1", display_name="Ana")

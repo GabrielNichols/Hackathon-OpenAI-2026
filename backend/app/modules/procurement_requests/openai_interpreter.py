@@ -395,11 +395,11 @@ def _optional_nonnegative_int(value: object) -> int | None:
 
 
 __all__ = [
+    "OPENAI_EXTRACTION_SCHEMA_SHA256",
+    "PROMPT_SHA256",
+    "PROMPT_VERSION",
     "FallbackProcurementInterpreter",
     "OpenAIFieldEvidence",
     "OpenAIProcurementExtraction",
     "OpenAIProcurementInterpreter",
-    "OPENAI_EXTRACTION_SCHEMA_SHA256",
-    "PROMPT_SHA256",
-    "PROMPT_VERSION",
 ]
