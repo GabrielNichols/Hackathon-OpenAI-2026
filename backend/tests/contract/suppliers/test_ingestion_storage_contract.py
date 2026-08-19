@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
 
@@ -28,7 +29,7 @@ def storage(
 @pytest.mark.asyncio
 async def test_duplicate_content_reuses_tenant_blob(storage: DocumentStoragePort) -> None:
     content = b"same bytes"
-    sha256 = "9e6f74c3bc1644c3899c7cc3af2c6e2e0905ba8de01b96df6c2b1cdb2fc05532"
+    sha256 = hashlib.sha256(content).hexdigest()
     first = await storage.store(
         tenant_id="org_1",
         sha256=sha256,
@@ -51,7 +52,7 @@ async def test_duplicate_content_reuses_tenant_blob(storage: DocumentStoragePort
 @pytest.mark.asyncio
 async def test_storage_deduplication_is_tenant_scoped(storage: DocumentStoragePort) -> None:
     content = b"same bytes"
-    sha256 = "9e6f74c3bc1644c3899c7cc3af2c6e2e0905ba8de01b96df6c2b1cdb2fc05532"
+    sha256 = hashlib.sha256(content).hexdigest()
     first = await storage.store(
         tenant_id="org_1",
         sha256=sha256,

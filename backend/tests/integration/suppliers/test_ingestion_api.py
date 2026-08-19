@@ -63,9 +63,7 @@ async def test_upload_and_download_original_material(app: FastAPI) -> None:
         payload = response.json()
         assert payload["status"] == "EXTRACTION_QUEUED"
         assert payload["sanitized_filename"] == "menu.pdf"
-        download = await client.get(
-            f"/api/v1/suppliers/sup_1/materials/{payload['document_id']}"
-        )
+        download = await client.get(f"/api/v1/suppliers/sup_1/materials/{payload['document_id']}")
 
     assert download.status_code == 200
     assert download.content == b"%PDF-1.7\nfixture"

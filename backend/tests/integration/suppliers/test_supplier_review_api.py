@@ -18,7 +18,6 @@ from app.modules.suppliers.application.review import (
 )
 from app.modules.suppliers.extraction.models import ExtractedFieldDTO, ExtractionFieldStatus
 
-
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 
 
@@ -124,7 +123,9 @@ async def test_review_api_correction_is_versioned_and_returns_source_evidence() 
     assert corrected.status_code == 200
     assert corrected.json()["version"] == 2
     assert corrected.json()["decision"] == "corrected"
-    current = next(field for field in review.json()["fields"] if field["field_name"] == "trade_name")
+    current = next(
+        field for field in review.json()["fields"] if field["field_name"] == "trade_name"
+    )
     assert current["source_document_id"] == "doc_1"
     assert current["source_excerpt"] == "evidence for trade_name"
 
@@ -155,7 +156,9 @@ async def test_review_api_blocks_incomplete_submit_and_allows_same_token_to_fini
 
 
 @pytest.mark.asyncio
-async def test_review_api_rejects_expired_and_wrong_supplier_tokens_without_leaking_review() -> None:
+async def test_review_api_rejects_expired_and_wrong_supplier_tokens_without_leaking_review() -> (
+    None
+):
     expired_app, expired_token, _, _ = api_context(expires_at=NOW)
     wrong_app, wrong_token, _, _ = api_context(token_supplier_id="sup_other")
 
