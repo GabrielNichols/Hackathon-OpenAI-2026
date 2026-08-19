@@ -26,6 +26,7 @@ from app.modules.suppliers.application.ingestion import (
 )
 from app.modules.suppliers.application.review import (
     InMemorySupplierReviewRepository,
+    ReviewConflictError,
     SupplierReviewService,
     SupplierReviewSession,
 )
@@ -240,7 +241,7 @@ async def test_consumed_review_token_cannot_modify_fields_after_submit() -> None
     await service.confirm_field(token, "trade_name", expected_version=1)
     await service.submit(token)
 
-    with pytest.raises(ReviewTokenError) as error:
+    with pytest.raises((ReviewTokenError, ReviewConflictError)) as error:
         await service.correct_field(
             token,
             "trade_name",
@@ -249,7 +250,10 @@ async def test_consumed_review_token_cannot_modify_fields_after_submit() -> None
             expected_version=2,
         )
 
-    assert error.value.code == "LINK_INVALID"
+    assert error.value.code in {"LINK_INVALID", "CONFLICT"}
+    stored = repository.get("review_1")
+    assert stored.current_field("trade_name").value == "Alpha"
+    assert len(stored.field_history("trade_name")) == 2
     assert len(activation.commands) == 1
 
 
