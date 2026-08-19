@@ -104,8 +104,9 @@ async function api(path, options = {}) {
 
 function setBusy(busy, label = "Interpretar briefing") {
   const button = byId("send-button");
-  button.disabled = busy;
-  button.textContent = busy ? "Interpretando…" : label;
+  const planReady = state.view?.stop_reason === "AWAITING_PLAN_CONFIRMATION";
+  button.disabled = busy || planReady;
+  button.textContent = busy ? "Interpretando…" : planReady ? "Plano pronto para revisão" : label;
   byId("confirm-plan").disabled = busy;
 }
 
@@ -268,7 +269,9 @@ function render(view) {
 
 function showError(error) {
   const answer = byId("agent-answer");
-  answer.textContent = error.message;
+  answer.textContent = /plan already exists/i.test(String(error.message))
+    ? "O plano já está pronto. Revise-o e confirme para iniciar a busca de fornecedores."
+    : "Não foi possível concluir esta etapa agora. Tente novamente.";
   answer.classList.add("error");
   show("agent-answer");
 }
