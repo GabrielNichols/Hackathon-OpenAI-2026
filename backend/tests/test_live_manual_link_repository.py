@@ -82,9 +82,7 @@ def _activity(
     )
 
 
-def _database(
-    tmp_path, name: str
-) -> tuple[object, sessionmaker[Session], Path]:
+def _database(tmp_path, name: str) -> tuple[object, sessionmaker[Session], Path]:
     path = tmp_path / name
     engine = create_database_engine(f"sqlite:///{path}")
     create_schema(engine)
@@ -98,24 +96,17 @@ async def test_delivery_and_link_created_are_atomic_and_survive_restart(tmp_path
     created = _activity(record, 1, ManualDeliveryAction.LINK_CREATED)
 
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         await repository.create(record, created)
         session.commit()
     engine.dispose()
 
     restarted, restarted_sessions, _ = _database(tmp_path, "manual-link.db")
     with restarted_sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         assert await repository.get_by_external_id(record.external_id) == record
         assert await repository.get_by_idempotency_key(record.idempotency_key) == record
-        assert (
-            await repository.get_by_response_token_digest(record.response_token_digest)
-            == record
-        )
+        assert await repository.get_by_response_token_digest(record.response_token_digest) == record
         assert await repository.list_activities(record.external_id) == (created,)
     restarted.dispose()
 
@@ -128,9 +119,7 @@ async def test_create_rolls_back_record_if_creation_activity_conflicts(tmp_path)
     duplicate_activity_id = "manual_activity_globally_unique"
 
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         first_activity = ManualDeliveryActivity(
             activity_id=duplicate_activity_id,
             external_id=first.external_id,
@@ -163,12 +152,8 @@ async def test_unique_delivery_keys_are_enforced_by_database(tmp_path) -> None:
     original = _record("original-1032fe55014848dab6664c1c1a3a9b10")
 
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
-        await repository.create(
-            original, _activity(original, 1, ManualDeliveryAction.LINK_CREATED)
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
+        await repository.create(original, _activity(original, 1, ManualDeliveryAction.LINK_CREATED))
         session.commit()
 
         conflicts = (
@@ -205,12 +190,8 @@ async def test_activities_are_ordered_and_pii_is_hmac_only(tmp_path) -> None:
     raw_user_agent = "Supplier Browser with private fingerprint"
 
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
-        await repository.create(
-            record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED)
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
+        await repository.create(record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED))
         await repository.append_activity(
             _activity(
                 record,
@@ -267,12 +248,8 @@ async def test_open_transition_is_idempotent_and_requires_recorded_send(tmp_path
     record = _record()
 
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
-        await repository.create(
-            record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED)
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
+        await repository.create(record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED))
         with pytest.raises(GatewayError, match="manual send is recorded"):
             await repository.mark_delivered_on_open(
                 record.external_id,
@@ -280,9 +257,7 @@ async def test_open_transition_is_idempotent_and_requires_recorded_send(tmp_path
                 _activity(record, 2, ManualDeliveryAction.SUPPLIER_OPENED),
             )
 
-        await repository.append_activity(
-            _activity(record, 3, ManualDeliveryAction.SEND_RECORDED)
-        )
+        await repository.append_activity(_activity(record, 3, ManualDeliveryAction.SEND_RECORDED))
         first = await repository.mark_delivered_on_open(
             record.external_id,
             NOW,
@@ -297,9 +272,7 @@ async def test_open_transition_is_idempotent_and_requires_recorded_send(tmp_path
 
         assert replay == first
         activity = await repository.list_activities(record.external_id)
-        assert sum(
-            item.action == ManualDeliveryAction.SUPPLIER_OPENED for item in activity
-        ) == 1
+        assert sum(item.action == ManualDeliveryAction.SUPPLIER_OPENED for item in activity) == 1
     engine.dispose()
 
 
@@ -307,18 +280,12 @@ def test_concurrent_opening_creates_exactly_one_transition_and_activity(tmp_path
     engine, sessions, _ = _database(tmp_path, "concurrent-open.db")
     record = _record()
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
+        asyncio.run(
+            repository.create(record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED))
         )
         asyncio.run(
-            repository.create(
-                record, _activity(record, 1, ManualDeliveryAction.LINK_CREATED)
-            )
-        )
-        asyncio.run(
-            repository.append_activity(
-                _activity(record, 2, ManualDeliveryAction.SEND_RECORDED)
-            )
+            repository.append_activity(_activity(record, 2, ManualDeliveryAction.SEND_RECORDED))
         )
         session.commit()
 
@@ -326,9 +293,7 @@ def test_concurrent_opening_creates_exactly_one_transition_and_activity(tmp_path
 
     def open_in_own_transaction(sequence: int) -> ManualLinkDeliveryRecord:
         with sessions() as session:
-            repository = SqlAlchemyManualLinkDeliveryRepository(
-                session, pii_hash_secret=PII_SECRET
-            )
+            repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
             barrier.wait(timeout=5)
             result = asyncio.run(
                 repository.mark_delivered_on_open(
@@ -353,13 +318,9 @@ def test_concurrent_opening_creates_exactly_one_transition_and_activity(tmp_path
     assert all(result.status == DeliveryState.DELIVERED for result in results)
     assert results[0].delivered_at == results[1].delivered_at
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         activities = asyncio.run(repository.list_activities(record.external_id))
-        assert sum(
-            item.action == ManualDeliveryAction.SUPPLIER_OPENED for item in activities
-        ) == 1
+        assert sum(item.action == ManualDeliveryAction.SUPPLIER_OPENED for item in activities) == 1
     engine.dispose()
 
 
@@ -372,13 +333,9 @@ async def test_repository_rejects_public_link_containing_raw_token(tmp_path) -> 
         public_link=f"https://demo.example/supplier/respond?token={RAW_RESPONSE_TOKEN}",
     )
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         with pytest.raises(ValueError, match="raw response token"):
-            await repository.create(
-                unsafe, _activity(unsafe, 1, ManualDeliveryAction.LINK_CREATED)
-            )
+            await repository.create(unsafe, _activity(unsafe, 1, ManualDeliveryAction.LINK_CREATED))
     engine.dispose()
 
 
@@ -389,9 +346,7 @@ async def test_real_adapter_uses_durable_repository_without_persisting_bearer_to
     engine, sessions, database_path = _database(tmp_path, "adapter-integration.db")
     raw_contact = "private-supplier@example.com"
     with sessions() as session:
-        repository = SqlAlchemyManualLinkDeliveryRepository(
-            session, pii_hash_secret=PII_SECRET
-        )
+        repository = SqlAlchemyManualLinkDeliveryRepository(session, pii_hash_secret=PII_SECRET)
         assert isinstance(repository, ManualLinkDeliveryRepository)
         identifiers = iter(range(1, 20))
         gateway = ManualLinkDeliveryAdapter(

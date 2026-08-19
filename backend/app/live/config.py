@@ -43,13 +43,9 @@ class LiveSettings:
         if len(self.csrf_secret.encode("utf-8")) < 32:
             raise LiveConfigurationError("csrf_secret must contain at least 32 bytes")
         if len(self.pii_hash_secret.encode("utf-8")) < 32:
-            raise LiveConfigurationError(
-                "pii_hash_secret must contain at least 32 bytes"
-            )
+            raise LiveConfigurationError("pii_hash_secret must contain at least 32 bytes")
         if len({self.token_secret, self.csrf_secret, self.pii_hash_secret}) != 3:
-            raise LiveConfigurationError(
-                "token, CSRF and PII hashing secrets must be different"
-            )
+            raise LiveConfigurationError("token, CSRF and PII hashing secrets must be different")
         if len(self.operator_access_token) < 24:
             raise LiveConfigurationError(
                 "operator_access_token must contain at least 24 characters"
@@ -59,9 +55,7 @@ class LiveSettings:
                 "approver_access_token must contain at least 24 characters"
             )
         if self.operator_access_token == self.approver_access_token:
-            raise LiveConfigurationError(
-                "operator and approver must use different credentials"
-            )
+            raise LiveConfigurationError("operator and approver must use different credentials")
 
         parsed_database = urlparse(self.database_url)
         supported_schemes = {
@@ -69,9 +63,7 @@ class LiveSettings:
             "postgresql",
             "postgresql+psycopg",
         }
-        is_explicit_test_database = (
-            self.allow_test_database and parsed_database.scheme == "sqlite"
-        )
+        is_explicit_test_database = self.allow_test_database and parsed_database.scheme == "sqlite"
         if is_explicit_test_database and parsed_database.path in {"", "/:memory:"}:
             raise LiveConfigurationError("test database must be a durable SQLite file")
         if parsed_database.scheme not in supported_schemes and not is_explicit_test_database:
@@ -104,9 +96,7 @@ class LiveSettings:
     def from_env(cls) -> LiveSettings:
         mode = os.environ.get("CANAL_AGENT_MODE", "").strip().lower()
         if mode != "live":
-            raise LiveConfigurationError(
-                "CANAL_AGENT_MODE must be explicitly set to 'live'"
-            )
+            raise LiveConfigurationError("CANAL_AGENT_MODE must be explicitly set to 'live'")
         return cls(
             database_url=_required_env("CANAL_AGENT_DATABASE_URL"),
             public_base_url=_required_env("CANAL_AGENT_PUBLIC_BASE_URL"),
@@ -114,13 +104,9 @@ class LiveSettings:
             csrf_secret=_required_env("CANAL_AGENT_CSRF_SECRET"),
             pii_hash_secret=_required_env("CANAL_AGENT_PII_HASH_SECRET"),
             operator_user_id=_required_env("CANAL_AGENT_OPERATOR_USER_ID"),
-            operator_access_token=_required_env(
-                "CANAL_AGENT_OPERATOR_ACCESS_TOKEN"
-            ),
+            operator_access_token=_required_env("CANAL_AGENT_OPERATOR_ACCESS_TOKEN"),
             approver_user_id=_required_env("CANAL_AGENT_APPROVER_USER_ID"),
-            approver_access_token=_required_env(
-                "CANAL_AGENT_APPROVER_ACCESS_TOKEN"
-            ),
+            approver_access_token=_required_env("CANAL_AGENT_APPROVER_ACCESS_TOKEN"),
             tenant_id=_required_env("CANAL_AGENT_TENANT_ID"),
         )
 
@@ -134,12 +120,8 @@ def reject_fake_live_component(component: object, *, role: str) -> None:
         "app.modules.messaging.gateway.FakeDeliveryGateway",
         "app.modules.rfq.store.InMemoryExecutionStore",
     }
-    if qualified_name in forbidden_names or component_type.__name__.lower().startswith(
-        "fake"
-    ):
-        raise LiveConfigurationError(
-            f"live {role} cannot use test component {qualified_name}"
-        )
+    if qualified_name in forbidden_names or component_type.__name__.lower().startswith("fake"):
+        raise LiveConfigurationError(f"live {role} cannot use test component {qualified_name}")
 
 
 def _required_env(name: str) -> str:

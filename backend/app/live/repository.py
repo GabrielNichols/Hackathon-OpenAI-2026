@@ -157,9 +157,7 @@ class SqlAlchemyExecutionStoreRepository:
         aggregate_id: str | None = None,
         correlation_id: str | None = None,
     ) -> list[AuditEventDTO]:
-        statement = select(AuditEventRow).where(
-            AuditEventRow.snapshot_id == self.snapshot_id
-        )
+        statement = select(AuditEventRow).where(AuditEventRow.snapshot_id == self.snapshot_id)
         if tenant_id is not None:
             statement = statement.where(AuditEventRow.tenant_id == tenant_id)
         if aggregate_type is not None:
@@ -181,9 +179,7 @@ class SqlAlchemyExecutionStoreRepository:
 
     def _replace_business_state(self, store: ExecutionStore) -> None:
         self.session.execute(
-            delete(ExecutionStateRow).where(
-                ExecutionStateRow.snapshot_id == self.snapshot_id
-            )
+            delete(ExecutionStateRow).where(ExecutionStateRow.snapshot_id == self.snapshot_id)
         )
         for bucket_name in sorted(self._state_buckets()):
             bucket = getattr(store, bucket_name)
@@ -262,9 +258,7 @@ class SqlAlchemyExecutionStoreRepository:
                 {"snapshot_id": self.snapshot_id, "event_id": event.event_id},
             )
             if existing is not None:
-                persisted_event = canonical_encoded_json(
-                    self._unprotect(existing.event_data)
-                )
+                persisted_event = canonical_encoded_json(self._unprotect(existing.event_data))
                 checkpoint_event = canonical_encoded_json(event_data)
                 if persisted_event != checkpoint_event:
                     raise PersistenceIntegrityError(
@@ -289,9 +283,7 @@ class SqlAlchemyExecutionStoreRepository:
     @staticmethod
     def _state_buckets() -> frozenset[str]:
         return frozenset(
-            field.name
-            for field in fields(ExecutionStore)
-            if field.name not in _SPECIAL_FIELDS
+            field.name for field in fields(ExecutionStore) if field.name not in _SPECIAL_FIELDS
         )
 
     @staticmethod

@@ -1,0 +1,26 @@
+{
+  "classification": "synthetic_test_only",
+  "authorized_for_real_demo": false,
+  "disclaimer": "NOT AUTHORIZED FOR A REAL DEMO. Synthetic automated-test fixture with no real supplier.",
+  "supplier_id": "sup_synthetic_alpha_pdf",
+  "input_format": "pdf",
+  "material_reference": "synthetic-test://alpha/menu.pdf",
+  "profile": {
+    "trade_name": "Synthetic Alpha Catering",
+    "categories": ["corporate_catering"],
+    "service_cities": ["São Paulo"],
+    "contact_email": "alpha.synthetic@example.test",
+    "cnpj": null
+  },
+  "extraction_fixture": {
+    "trade_name": {
+      "value": "Synthetic Alpha Catering",
+      "normalized_value": "Synthetic Alpha Catering",
+      "status": "extracted",
+      "confidence": 0.99,
+      "source_page": 1,
+      "source_excerpt": "Synthetic Alpha Catering"
+    }
+  }
+}
+

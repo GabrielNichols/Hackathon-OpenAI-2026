@@ -1,0 +1,25 @@
+{
+  "classification": "synthetic_test_only",
+  "authorized_for_real_demo": false,
+  "disclaimer": "NOT AUTHORIZED FOR A REAL DEMO. Synthetic automated-test fixture with no real supplier.",
+  "supplier_id": "sup_synthetic_beta_text",
+  "input_format": "text",
+  "material_reference": "synthetic-test://beta/whatsapp.txt",
+  "profile": {
+    "trade_name": "Synthetic Beta Foods",
+    "categories": ["coffee_break"],
+    "service_cities": ["São Paulo"],
+    "contact_email": "beta.synthetic@example.test",
+    "cnpj": null
+  },
+  "extraction_fixture": {
+    "minimum_people": {
+      "value": "a partir de 25 pessoas",
+      "normalized_value": 25,
+      "status": "extracted",
+      "confidence": 0.95,
+      "source_excerpt": "a partir de 25 pessoas"
+    }
+  }
+}
+

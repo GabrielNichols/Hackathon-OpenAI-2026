@@ -1,0 +1,99 @@
+.review-shell {
+  --review-ink: #182230;
+  --review-muted: #536171;
+  --review-line: #d5dce3;
+  --review-surface: #ffffff;
+  --review-soft: #f5f7f9;
+  --review-accent: #075985;
+  --review-accent-strong: #064566;
+  --review-focus: #0ea5e9;
+  box-sizing: border-box;
+  color: var(--review-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 72rem;
+  min-height: 100dvh;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+}
+
+.review-shell *, .review-shell *::before, .review-shell *::after { box-sizing: inherit; }
+.review-shell h1, .review-shell h2, .review-shell p { margin-top: 0; }
+.review-shell h1 { font-size: clamp(2rem, 7vw, 3.5rem); letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 1rem; }
+.review-shell h2 { font-size: 1.2rem; line-height: 1.25; margin-bottom: 0; }
+.eyebrow, .field-eyebrow { color: var(--review-accent); font-size: .78rem; font-weight: 800; letter-spacing: .08em; margin-bottom: .45rem; text-transform: uppercase; }
+.review-hero { background: linear-gradient(145deg, #edf8fc, #f8fbfc); border: 1px solid #c8e2ec; border-radius: 1.5rem; margin-bottom: 1.25rem; padding: clamp(1.25rem, 5vw, 2.75rem); }
+.review-hero > p:not(.eyebrow) { color: var(--review-muted); font-size: 1.08rem; max-width: 48rem; }
+.progress-summary { align-items: center; display: flex; font-size: .9rem; font-weight: 700; gap: .75rem; margin-top: 1.5rem; }
+.progress-summary progress { accent-color: var(--review-accent); height: .65rem; max-width: 22rem; width: 100%; }
+.fields-list { display: grid; gap: 1rem; }
+.review-field-card { background: var(--review-surface); border: 1px solid var(--review-line); border-radius: 1.25rem; box-shadow: 0 10px 30px rgb(15 23 42 / 5%); outline: none; overflow: hidden; padding: 1.15rem; }
+.review-field-card:focus-visible { box-shadow: 0 0 0 4px rgb(14 165 233 / 25%); }
+.field-heading { align-items: flex-start; display: flex; gap: .75rem; justify-content: space-between; margin-bottom: 1rem; }
+.field-eyebrow { color: var(--review-muted); margin-bottom: .25rem; }
+.review-status { align-items: center; border: 1px solid currentColor; border-radius: 999px; display: inline-flex; flex: 0 0 auto; font-size: .78rem; font-weight: 800; gap: .35rem; padding: .35rem .6rem; }
+.review-status[data-state="extracted"] { background: #eef5ff; color: #174ea6; }
+.review-status[data-state="needs_review"] { background: #fff7df; color: #7a4d00; }
+.review-status[data-state="not_found"] { background: #f3f4f6; color: #4b5563; }
+.review-status[data-state="confirmed"] { background: #e9f8ee; color: #176b36; }
+.review-status[data-state="corrected"] { background: #f3edff; color: #5b2798; }
+.review-status[data-state="not_applicable"] { background: #eef1f4; color: #3e4b59; }
+.field-content { display: grid; gap: .85rem; }
+.field-value-panel, .evidence-panel { border-radius: 1rem; min-width: 0; padding: 1rem; }
+.field-value-panel { background: var(--review-soft); }
+.field-value-label, .evidence-title { color: var(--review-muted); font-size: .78rem; font-weight: 800; letter-spacing: .06em; margin-bottom: .35rem; text-transform: uppercase; }
+.field-value { font-size: 1.15rem; font-weight: 750; margin-bottom: .5rem; overflow-wrap: anywhere; }
+.confidence, .original-value, .source-location { color: var(--review-muted); font-size: .86rem; margin-bottom: 0; }
+.original-value { border-top: 1px solid var(--review-line); margin-top: .75rem; padding-top: .75rem; }
+.evidence-panel { background: #f2f8f5; border: 1px solid #d5e8dc; }
+.evidence-heading { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
+.evidence-heading a { color: var(--review-accent); font-weight: 750; }
+.evidence-panel blockquote { border-left: 3px solid #57906c; margin: .65rem 0; padding-left: .8rem; }
+.field-actions, .editor-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+.button { align-items: center; border: 1px solid transparent; border-radius: .75rem; cursor: pointer; display: inline-flex; font: inherit; font-weight: 750; justify-content: center; min-height: 44px; padding: .65rem 1rem; }
+.button:focus-visible, .blocker-links button:focus-visible { outline: 3px solid var(--review-focus); outline-offset: 2px; }
+.button:disabled { cursor: not-allowed; opacity: .55; }
+.button-primary, .button-submit { background: var(--review-accent); color: white; }
+.button-primary:hover:not(:disabled), .button-submit:hover:not(:disabled) { background: var(--review-accent-strong); }
+.button-secondary { background: white; border-color: #7b8a99; color: var(--review-ink); }
+.button-quiet { background: transparent; color: var(--review-muted); }
+.correction-editor { background: #f8fafc; border-top: 1px solid var(--review-line); margin: 1rem -1.15rem -1.15rem; padding: 1.15rem; }
+.correction-editor label { display: block; font-weight: 750; margin-bottom: .45rem; }
+.correction-editor input, .correction-editor textarea { background: white; border: 1px solid #7b8a99; border-radius: .65rem; color: var(--review-ink); font: inherit; min-height: 44px; padding: .7rem .8rem; width: 100%; }
+.correction-editor textarea { resize: vertical; }
+.field-error, .action-error { color: #9b1c1c; font-weight: 700; }
+.action-error { background: #fff0f0; border: 1px solid #efb6b6; border-radius: .8rem; margin-bottom: 1rem; padding: .8rem 1rem; }
+.submit-panel { background: var(--review-surface); border: 1px solid var(--review-line); border-radius: 1.25rem; margin-top: 1rem; padding: 1rem; position: sticky; bottom: max(.5rem, env(safe-area-inset-bottom)); box-shadow: 0 12px 35px rgb(15 23 42 / 14%); }
+.submit-blockers h2 { font-size: 1rem; margin-bottom: .25rem; }
+.submit-blockers p, .submit-panel > p { color: var(--review-muted); font-size: .9rem; margin-bottom: .65rem; }
+.blocker-links { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .8rem; }
+.blocker-links button { background: transparent; border: 0; color: var(--review-accent); cursor: pointer; font: inherit; font-weight: 750; padding: .4rem; text-decoration: underline; }
+.button-submit { width: 100%; }
+.ready-message { color: #176b36; font-weight: 750; margin-bottom: .75rem; }
+.state-shell { display: grid; place-items: center; }
+.state-card { background: white; border: 1px solid var(--review-line); border-radius: 1.5rem; max-width: 34rem; padding: clamp(1.5rem, 6vw, 3rem); text-align: center; }
+.state-card h1 { font-size: clamp(1.8rem, 7vw, 2.6rem); }
+.state-card p { color: var(--review-muted); }
+.state-symbol { display: block; font-size: 2rem; margin-bottom: .75rem; }
+.loading-card { align-items: center; display: flex; gap: .75rem; }
+.loading-card p { margin: 0; }
+.loading-dot { animation: review-pulse 1.2s ease-in-out infinite; background: var(--review-accent); border-radius: 50%; height: .8rem; width: .8rem; }
+.success-card { border-color: #9bd2ad; }
+@keyframes review-pulse { 50% { opacity: .3; transform: scale(.8); } }
+@media (min-width: 52rem) {
+  .review-shell { padding-left: 2rem; padding-right: 2rem; }
+  .review-field-card { padding: 1.5rem; }
+  .field-content { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  .correction-editor { margin: 1.25rem -1.5rem -1.5rem; padding: 1.5rem; }
+  .submit-panel { align-items: center; display: grid; gap: 1.25rem; grid-template-columns: 1fr minmax(14rem, 20rem); }
+  .submit-panel > p { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { .loading-dot { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  .review-shell { --review-ink: #ecf2f7; --review-muted: #b2c0cd; --review-line: #415061; --review-surface: #16212c; --review-soft: #202d39; background: #0e1720; }
+  .review-hero { background: linear-gradient(145deg, #123344, #17252f); border-color: #285469; }
+  .evidence-panel { background: #173027; border-color: #315b49; }
+  .button-secondary, .correction-editor input, .correction-editor textarea, .state-card { background: #16212c; color: var(--review-ink); }
+  .correction-editor { background: #101a23; }
+}

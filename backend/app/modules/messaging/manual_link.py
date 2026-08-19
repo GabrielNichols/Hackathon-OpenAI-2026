@@ -92,9 +92,7 @@ class ManualLinkDeliveryRepository(Protocol):
     requests for the same link.
     """
 
-    async def get_by_external_id(
-        self, external_id: str
-    ) -> ManualLinkDeliveryRecord | None: ...
+    async def get_by_external_id(self, external_id: str) -> ManualLinkDeliveryRecord | None: ...
 
     async def get_by_idempotency_key(
         self, idempotency_key: str
@@ -120,9 +118,7 @@ class ManualLinkDeliveryRepository(Protocol):
         action: ManualDeliveryAction,
     ) -> bool: ...
 
-    async def list_activities(
-        self, external_id: str
-    ) -> Sequence[ManualDeliveryActivity]: ...
+    async def list_activities(self, external_id: str) -> Sequence[ManualDeliveryActivity]: ...
 
     async def mark_delivered_on_open(
         self,
@@ -170,9 +166,7 @@ class ManualLinkDeliveryAdapter:
             raise ValueError("ManualLinkDeliveryAdapter accepts only channel='manual_link'")
 
         fingerprint = _fingerprint(normalized)
-        existing = await self._repository.get_by_idempotency_key(
-            normalized["idempotency_key"]
-        )
+        existing = await self._repository.get_by_idempotency_key(normalized["idempotency_key"])
         if existing is not None:
             if existing.fingerprint != fingerprint:
                 raise GatewayIdempotencyConflict(

@@ -203,9 +203,7 @@ class SpyFacade:
         idempotency_key: str,
         evidence: RequestEvidence,
     ) -> ActionReceipt:
-        self.calls.append(
-            ("open_rfq", (capability_token, idempotency_key, evidence))
-        )
+        self.calls.append(("open_rfq", (capability_token, idempotency_key, evidence)))
         self.rfq_page = replace(self.rfq_page, opened_at=NOW)
         return ActionReceipt("rfq-real-1", "DELIVERED", "Abertura registrada")
 
@@ -278,9 +276,7 @@ class SpyFacade:
         idempotency_key: str,
         evidence: RequestEvidence,
     ) -> ActionReceipt:
-        self.calls.append(
-            ("open_award", (capability_token, idempotency_key, evidence))
-        )
+        self.calls.append(("open_award", (capability_token, idempotency_key, evidence)))
         self.award_page = replace(
             self.award_page,
             status="DELIVERED",
@@ -413,9 +409,7 @@ class SpyFacade:
         actor: HumanActor,
         evidence: RequestEvidence,
     ) -> ManualDeliveryActivityPage:
-        self.calls.append(
-            ("get_manual_delivery_activity", (external_id, actor, evidence))
-        )
+        self.calls.append(("get_manual_delivery_activity", (external_id, actor, evidence)))
         return ManualDeliveryActivityPage(
             external_id=external_id,
             supplier_name=self.manual_delivery.supplier_name,
@@ -443,9 +437,7 @@ class SpyFacade:
         actor: HumanActor,
         evidence: RequestEvidence,
     ) -> ExecutionEvidencePage:
-        self.calls.append(
-            ("get_execution_evidence", (procurement_request_id, actor, evidence))
-        )
+        self.calls.append(("get_execution_evidence", (procurement_request_id, actor, evidence)))
         return self.execution_evidence
 
     async def get_comparison(

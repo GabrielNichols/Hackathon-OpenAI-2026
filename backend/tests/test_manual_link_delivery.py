@@ -35,14 +35,10 @@ class InMemoryManualLinkRepositoryForTests:
         self.activities: dict[str, list[ManualDeliveryActivity]] = {}
         self._lock = asyncio.Lock()
 
-    async def get_by_external_id(
-        self, external_id: str
-    ) -> ManualLinkDeliveryRecord | None:
+    async def get_by_external_id(self, external_id: str) -> ManualLinkDeliveryRecord | None:
         return self.records.get(external_id)
 
-    async def get_by_idempotency_key(
-        self, idempotency_key: str
-    ) -> ManualLinkDeliveryRecord | None:
+    async def get_by_idempotency_key(self, idempotency_key: str) -> ManualLinkDeliveryRecord | None:
         external_id = self.by_idempotency_key.get(idempotency_key)
         return self.records.get(external_id) if external_id else None
 
@@ -83,9 +79,7 @@ class InMemoryManualLinkRepositoryForTests:
     ) -> bool:
         return any(item.action == action for item in self.activities.get(external_id, []))
 
-    async def list_activities(
-        self, external_id: str
-    ) -> Sequence[ManualDeliveryActivity]:
+    async def list_activities(self, external_id: str) -> Sequence[ManualDeliveryActivity]:
         return tuple(self.activities.get(external_id, []))
 
     async def mark_delivered_on_open(

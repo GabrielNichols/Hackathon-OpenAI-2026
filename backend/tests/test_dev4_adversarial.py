@@ -611,10 +611,7 @@ async def test_two_valid_quotes_and_explicit_sustainability_are_required():
     assert alpha_v2.status == "FINAL"
     assert refreshed.valid_count == 2
     assert refreshed.ready_for_comparison is True
-    assert any(
-        event.event_type == "CLARIFICATION_ANSWERED"
-        for event in service.audit_events
-    )
+    assert any(event.event_type == "CLARIFICATION_ANSWERED" for event in service.audit_events)
 
 
 @pytest.mark.asyncio
@@ -670,10 +667,7 @@ async def test_quote_post_idempotency_conflict_and_approval_invalidation():
     )
     invalidated = await service.get_approval_status(approval.approval_id)
     assert invalidated.status == "INVALIDATED"
-    assert any(
-        event.event_type == "APPROVAL_INVALIDATED"
-        for event in service.audit_events
-    )
+    assert any(event.event_type == "APPROVAL_INVALIDATED" for event in service.audit_events)
 
 
 @pytest.mark.asyncio

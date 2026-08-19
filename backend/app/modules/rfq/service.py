@@ -83,8 +83,7 @@ class ProcurementExecutionService:
             "response_deadline must be in the future",
         )
         require(
-            command.execution_policy.minimum_valid_quotes
-            <= len(command.recipient_supplier_ids),
+            command.execution_policy.minimum_valid_quotes <= len(command.recipient_supplier_ids),
             ErrorCode.VALIDATION_ERROR,
             "minimum_valid_quotes cannot exceed recipient count",
         )
@@ -265,9 +264,7 @@ class ProcurementExecutionService:
             "recipient_id": context.recipient_id,
             "submission": submission,
         }
-        quote_operation = (
-            f"{self._round(context.rfq_round_id)['tenant_id']}:quote.submit"
-        )
+        quote_operation = f"{self._round(context.rfq_round_id)['tenant_id']}:quote.submit"
         if idempotency_key is not None:
             replay = self._raw_idempotent_replay(
                 quote_operation,
@@ -342,10 +339,8 @@ class ProcurementExecutionService:
         if existing_quote is not None:
             quote_id_with_pending_change = existing_quote["dto"].quote_id
             award_exists = any(
-                approval_record["dto"].selected_quote.quote_id
-                == quote_id_with_pending_change
-                and approval_record["dto"].approval_id
-                in self.store.award_by_approval_id
+                approval_record["dto"].selected_quote.quote_id == quote_id_with_pending_change
+                and approval_record["dto"].approval_id in self.store.award_by_approval_id
                 for approval_record in self.store.approvals.values()
             )
             require(
@@ -353,9 +348,7 @@ class ProcurementExecutionService:
                 ErrorCode.INVALID_STATE,
                 "quote cannot change after an award is created",
             )
-        previous_quote_status = (
-            existing_quote["dto"].status if existing_quote is not None else None
-        )
+        previous_quote_status = existing_quote["dto"].status if existing_quote is not None else None
         quote_id = existing_quote["dto"].quote_id if existing_quote else self._new_id("quote")
         quote_version = existing_quote["dto"].quote_version + 1 if existing_quote else 1
         submission_payload = submission.model_dump()
@@ -645,9 +638,7 @@ class ProcurementExecutionService:
         reason: str | None = None,
     ) -> ApprovalDTO:
         current = self._approval(approval_id)
-        operation = (
-            f"{self._tenant_for_request(current.procurement_request_id)}:approval.decide"
-        )
+        operation = f"{self._tenant_for_request(current.procurement_request_id)}:approval.decide"
         payload = {
             "approval_id": approval_id,
             "actor_type": actor_type,
@@ -720,8 +711,7 @@ class ProcurementExecutionService:
             return replay
         approval = self._approval(command.approval_id)
         require(
-            self._tenant_for_request(approval.procurement_request_id)
-            == command.context.tenant_id,
+            self._tenant_for_request(approval.procurement_request_id) == command.context.tenant_id,
             ErrorCode.POLICY_DENIED,
             "approval belongs to another tenant",
         )
@@ -786,9 +776,7 @@ class ProcurementExecutionService:
                     metadata={
                         "approval_id": approval.approval_id,
                         "award_id": award_id,
-                        "tenant_id": self._tenant_for_request(
-                            approval.procurement_request_id
-                        ),
+                        "tenant_id": self._tenant_for_request(approval.procurement_request_id),
                     },
                 )
             )
@@ -1155,9 +1143,7 @@ class ProcurementExecutionService:
                 "award already has a reservation with different terms",
             )
             replay_result = current.model_copy(update={"idempotent_replay": True})
-            self._remember_raw_idempotency(
-                operation, idempotency_key, payload, replay_result
-            )
+            self._remember_raw_idempotency(operation, idempotency_key, payload, replay_result)
             return replay_result
         reservation_id = self._new_id("reservation")
         self.store.reservations[reservation_id] = {
@@ -1248,8 +1234,7 @@ class ProcurementExecutionService:
                         "RFQ_DELIVERY_CONFIRMED",
                         "rfq_recipient",
                         recipient_id,
-                        audit_context
-                        or self._system_context(round_dto.procurement_request_id),
+                        audit_context or self._system_context(round_dto.procurement_request_id),
                         {"external_id": external_id},
                         previous_state=previous_delivery_status,
                         new_state=DeliveryStatus.DELIVERED,
@@ -1319,8 +1304,7 @@ class ProcurementExecutionService:
             if (
                 approval.selected_quote.quote_id != quote.quote_id
                 or approval.selected_quote.quote_version == quote.quote_version
-                or approval.status
-                not in {ApprovalStatus.REQUESTED, ApprovalStatus.APPROVED}
+                or approval.status not in {ApprovalStatus.REQUESTED, ApprovalStatus.APPROVED}
             ):
                 continue
             updated = approval.model_copy(
