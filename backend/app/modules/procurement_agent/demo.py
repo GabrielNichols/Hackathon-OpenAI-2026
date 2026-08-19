@@ -38,7 +38,7 @@ class DemoContainer:
     directory: InMemorySupplierDirectory
     rfq: RFQExecutionPort
     audit: InMemoryAuditLog
-    mode: str = "demo_fake"
+    mode: str = "local"
 
 
 def create_demo_container(
@@ -68,7 +68,7 @@ def create_demo_container(
         service=request_service,
     )
     interpreter: ProcurementInterpretationPort = local_interpreter
-    mode = "demo_fake"
+    mode = "local"
     if openai_settings is not None:
         openai_interpreter = OpenAIProcurementInterpreter(
             resolved_clock,
@@ -80,7 +80,7 @@ def create_demo_container(
             if openai_fallback
             else openai_interpreter
         )
-        mode = "demo_openai_with_local_fallback" if openai_fallback else "demo_openai_interpreter"
+        mode = "openai_with_local_fallback" if openai_fallback else "openai"
     directory = InMemorySupplierDirectory(
         _demo_suppliers(resolved_clock.now()) if suppliers is None else suppliers
     )
