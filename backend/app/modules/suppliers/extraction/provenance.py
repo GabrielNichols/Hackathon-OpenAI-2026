@@ -47,4 +47,3 @@ def finalize_extraction_result(
     ordered_names = [*CRITICAL_EXTRACTION_FIELDS]
     ordered_names.extend(name for name in fields_by_name if name not in CRITICAL_EXTRACTION_FIELDS)
     return result.model_copy(update={"fields": [fields_by_name[name] for name in ordered_names]})
-

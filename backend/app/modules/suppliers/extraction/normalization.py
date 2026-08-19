@@ -84,4 +84,3 @@ def map_dietary_capabilities(raw: str) -> dict[str, bool | None]:
         "gluten_free_supported": True if gluten_free else None,
         "cross_contamination_warning": True if cross_contamination else None,
     }
-

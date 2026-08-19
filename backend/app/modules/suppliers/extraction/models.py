@@ -186,4 +186,3 @@ class SourceDocumentDTO(BaseModel):
     blob_id: str
     created_at: datetime
     status: DocumentProcessingStatus = DocumentProcessingStatus.STORED
-

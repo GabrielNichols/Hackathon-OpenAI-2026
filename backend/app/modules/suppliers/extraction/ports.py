@@ -9,4 +9,3 @@ class SupplierExtractionPort(Protocol):
         document: SourceDocumentDTO,
         schema: SupplierExtractionSchema,
     ) -> SupplierExtractionResultDTO: ...
-

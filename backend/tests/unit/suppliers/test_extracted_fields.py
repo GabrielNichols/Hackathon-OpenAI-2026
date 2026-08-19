@@ -99,4 +99,3 @@ def test_confirmation_requires_actor_and_timestamp() -> None:
 def test_version_must_start_at_one() -> None:
     with pytest.raises(ValidationError):
         extracted_field(version=0)
-

@@ -54,4 +54,3 @@ def test_explicit_cross_contamination_warning_is_preserved() -> None:
 
     assert mapped["gluten_free_supported"] is True
     assert mapped["cross_contamination_warning"] is True
-
