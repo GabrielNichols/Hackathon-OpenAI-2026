@@ -17,6 +17,7 @@ from app.modules.procurement_agent.adapters import (
     UUIDIdGenerator,
 )
 from app.modules.procurement_agent.orchestrator import ProcurementAgentOrchestrator
+from app.modules.procurement_agent.ports import Clock, RFQExecutionPort
 from app.modules.procurement_agent.sourcing_tools import InMemorySupplierDirectory
 from app.modules.procurement_agent.workflow import InMemoryProcurementProcessRepository
 from app.modules.procurement_requests.interpreter import LocalPortugueseProcurementInterpreter
@@ -35,7 +36,7 @@ class DemoContainer:
     orchestrator: ProcurementAgentOrchestrator
     interpreter: ProcurementInterpretationPort
     directory: InMemorySupplierDirectory
-    rfq: InMemoryRFQExecutionAdapter
+    rfq: RFQExecutionPort
     audit: InMemoryAuditLog
     mode: str = "demo_fake"
 
@@ -47,23 +48,30 @@ def create_demo_container(
     denied_actions: set[str] | None = None,
     openai_settings: OpenAIInterpreterSettings | None = None,
     openai_fallback: bool = False,
+    clock: Clock | None = None,
+    rfq: RFQExecutionPort | None = None,
+    integrated_mode: bool = False,
 ) -> DemoContainer:
-    """Build a fully offline, deterministic composition root for the prototype."""
+    """Build the buyer workflow around an injected execution boundary.
 
-    clock = FixedClock(datetime(2026, 8, 19, 15, 0, tzinfo=UTC))
+    The default remains the isolated regression prototype.  The live
+    composition injects Dev 4's durable adapter and a real clock instead.
+    """
+
+    resolved_clock = clock or FixedClock(datetime(2026, 8, 19, 15, 0, tzinfo=UTC))
     ids = UUIDIdGenerator()
     audit = InMemoryAuditLog()
     policy = PrototypePolicy(denied_actions=denied_actions)
-    request_service = ProcurementRequestService(clock=clock)
+    request_service = ProcurementRequestService(clock=resolved_clock)
     local_interpreter = LocalPortugueseProcurementInterpreter(
-        clock,
+        resolved_clock,
         service=request_service,
     )
     interpreter: ProcurementInterpretationPort = local_interpreter
     mode = "demo_fake"
     if openai_settings is not None:
         openai_interpreter = OpenAIProcurementInterpreter(
-            clock,
+            resolved_clock,
             openai_settings,
             service=request_service,
         )
@@ -74,9 +82,17 @@ def create_demo_container(
         )
         mode = "demo_openai_with_local_fallback" if openai_fallback else "demo_openai_interpreter"
     directory = InMemorySupplierDirectory(
-        _demo_suppliers(clock.now()) if suppliers is None else suppliers
+        _demo_suppliers(resolved_clock.now()) if suppliers is None else suppliers
     )
-    rfq = InMemoryRFQExecutionAdapter(clock=clock, ids=ids)
+    execution = rfq or InMemoryRFQExecutionAdapter(clock=resolved_clock, ids=ids)
+    if integrated_mode:
+        mode = (
+            "live_integrated_openai_with_local_fallback"
+            if openai_settings is not None and openai_fallback
+            else "live_integrated_openai_interpreter"
+            if openai_settings is not None
+            else "live_integrated_local_interpreter"
+        )
     orchestrator = ProcurementAgentOrchestrator(
         requests=InMemoryProcurementProcessRepository(),
         request_service=request_service,
@@ -84,10 +100,10 @@ def create_demo_container(
         directory=directory,
         eligibility=SupplierEligibilityEngine(max_profile_age=timedelta(days=90)),
         policy=policy,
-        rfq=rfq,
+        rfq=execution,
         audit=audit,
         runs=InMemoryAgentRunRepository(),
-        clock=clock,
+        clock=resolved_clock,
         ids=ids,
         max_steps=max_steps,
         mode=mode,
@@ -96,24 +112,40 @@ def create_demo_container(
         orchestrator=orchestrator,
         interpreter=interpreter,
         directory=directory,
-        rfq=rfq,
+        rfq=execution,
         audit=audit,
         mode=mode,
     )
 
 
-def create_runtime_container() -> DemoContainer:
+def create_runtime_container(
+    *,
+    clock: Clock | None = None,
+    rfq: RFQExecutionPort | None = None,
+    integrated_mode: bool = False,
+) -> DemoContainer:
     """Compose the API from environment without making offline tests spend credits."""
 
     provider = load_interpreter_provider()
     if provider == "local":
-        return create_demo_container()
+        return create_demo_container(
+            clock=clock,
+            rfq=rfq,
+            integrated_mode=integrated_mode,
+        )
     if provider == "auto" and load_openai_api_key() is None:
-        return create_demo_container()
+        return create_demo_container(
+            clock=clock,
+            rfq=rfq,
+            integrated_mode=integrated_mode,
+        )
     settings = OpenAIInterpreterSettings.from_environment()
     return create_demo_container(
         openai_settings=settings,
         openai_fallback=provider == "auto",
+        clock=clock,
+        rfq=rfq,
+        integrated_mode=integrated_mode,
     )
 
 

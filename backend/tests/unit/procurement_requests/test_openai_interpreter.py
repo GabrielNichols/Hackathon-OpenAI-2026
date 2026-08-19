@@ -146,7 +146,7 @@ async def test_openai_interpreter_uses_structured_responses_and_verified_evidenc
         separators=(",", ":"),
     )
     expected_schema_sha256 = hashlib.sha256(canonical_schema.encode("utf-8")).hexdigest()
-    assert OPENAI_EXTRACTION_SCHEMA_SHA256 == expected_schema_sha256
+    assert expected_schema_sha256 == OPENAI_EXTRACTION_SCHEMA_SHA256
     assert result.provider_metadata.schema_sha256 == expected_schema_sha256
     assert responses.arguments["store"] is False
     assert responses.arguments["input"] == canonical_input

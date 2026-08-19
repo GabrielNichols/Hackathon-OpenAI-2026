@@ -546,10 +546,7 @@ def _parse_brl_decimal(raw: str, *, is_thousands: bool) -> Decimal:
         normalized = whole.replace(".", "") + "." + fraction
     elif "." in raw:
         parts = raw.split(".")
-        if not is_thousands and len(parts[-1]) == 3:
-            normalized = "".join(parts)
-        else:
-            normalized = raw
+        normalized = "".join(parts) if not is_thousands and len(parts[-1]) == 3 else raw
     else:
         normalized = raw
     amount = Decimal(normalized)

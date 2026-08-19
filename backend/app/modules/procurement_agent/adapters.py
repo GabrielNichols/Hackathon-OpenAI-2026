@@ -13,6 +13,7 @@ from app.modules.procurement_agent.models import (
     CreateRFQRoundCommand,
     RFQRoundDTO,
 )
+from app.modules.procurement_agent.ports import Clock
 
 
 class SystemClock:
@@ -95,7 +96,7 @@ class InMemoryRFQExecutionAdapter:
     """Creates RFQ drafts only. It does not claim delivery or mutate RFQ_ACTIVE."""
 
     def __init__(
-        self, *, clock: SystemClock | FixedClock, ids: UUIDIdGenerator | SequentialIdGenerator
+        self, *, clock: Clock, ids: UUIDIdGenerator | SequentialIdGenerator
     ) -> None:
         self._clock = clock
         self._ids = ids
