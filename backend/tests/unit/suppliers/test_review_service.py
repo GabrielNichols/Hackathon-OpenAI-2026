@@ -22,7 +22,6 @@ from app.modules.suppliers.application.review import (
 )
 from app.modules.suppliers.extraction.models import ExtractedFieldDTO, ExtractionFieldStatus
 
-
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 
 

@@ -8,7 +8,6 @@ from app.modules.suppliers.application.core_compat import (
     SignedReviewTokenService,
 )
 
-
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 
 

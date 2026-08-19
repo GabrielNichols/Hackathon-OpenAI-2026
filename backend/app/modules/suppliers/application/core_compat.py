@@ -142,7 +142,10 @@ class SignedReviewTokenService:
             (claims.supplier_id, expected_supplier_id),
             (claims.recipient_id, expected_recipient_id),
         )
-        if any(expected is not None and not hmac.compare_digest(actual, expected) for actual, expected in bindings):
+        if any(
+            expected is not None and not hmac.compare_digest(actual, expected)
+            for actual, expected in bindings
+        ):
             raise ReviewTokenError("LINK_INVALID", "invalid review link binding")
         return claims
 
