@@ -69,7 +69,7 @@ py -3.12 -m venv .venv
 Resultado esperado no estado atual:
 
 ```text
-18 passed
+22 passed
 ```
 
 ## Demo por CLI
@@ -101,7 +101,7 @@ ou se o processo não chegar a `READY_FOR_CONTRACTING`.
 Inicie o servidor:
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app `
+.\.venv\Scripts\python.exe -m uvicorn app.dev4_demo:app `
   --host 127.0.0.1 --port 8000
 ```
 
@@ -131,8 +131,26 @@ integração durante o hackathon; cada etapa já existe separadamente no service
 
 ## Contrato Dev 3 ↔ Dev 4
 
-Fonte: `backend.app.modules.rfq.contracts`, versão
+Fonte: `app.modules.rfq.contracts`, versão
 `dev3-dev4.v0` em cada `CommandContextDTO`.
+
+Os dois protótipos nasceram com DTOs agent-facing e execution-facing
+diferentes. A conexão atual é propositalmente feita por
+`app.modules.rfq.dev3_adapter.Dev3RFQExecutionAdapter`, que:
+
+- preserva `tenant_id` e rejeita ator anônimo;
+- converte os snapshots abertos do Dev 3 nos snapshots tipados do Dev 4;
+- resolve timezone e cidade com defaults explícitos;
+- normaliza os pesos `total_price`, `mandatory_requirements` e
+  `response_time` para os critérios do scorer;
+- devolve somente os campos aceitos pelo `RFQRoundDTO` estrito do Dev 3;
+- considera retries com novo run/correlation como a mesma operação, mas ainda
+  rejeita mudança de recipients, requirements ou policy.
+
+Na primeira integração, o orchestrator do Dev 3 deve receber esse adapter no
+lugar de `InMemoryRFQExecutionAdapter`. Não deve receber diretamente
+`ProcurementExecutionService`, porque os DTOs dos dois lados têm papéis
+distintos.
 
 Dev 3 depende de `RFQExecutionPort`:
 
@@ -168,14 +186,14 @@ Regras do handoff:
 6. Aprovação, aceite e reserva são eventos materiais; não devem ser inferidos de
    texto do agente.
 
-No merge, os ports devem ser injetados no orchestrator. O Dev 3 não deve criar
+No merge, o adapter deve ser injetado no orchestrator. O Dev 3 não deve criar
 um `InMemoryExecutionStore` nem importar a implementação concreta.
 
 ## Próximos itens P1
 
 Ordem recomendada:
 
-1. Adaptar os DTOs e lifecycle aos contratos finais do Dev 1.
+1. Adaptar o lifecycle e os eventos aos contratos finais do Dev 1.
 2. Trocar o store por repositories SQLAlchemy e Unit of Work atômico.
 3. Persistir audit log, outbox, idempotência, tokens e delivery acknowledgments.
 4. Criar gateway real simples, com webhook/poll de ack e retry controlado.

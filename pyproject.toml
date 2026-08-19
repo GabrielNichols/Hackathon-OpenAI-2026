@@ -21,12 +21,16 @@ dev = [
   "ruff>=0.12,<1",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "backend"}
+
 [tool.setuptools.packages.find]
-include = ["backend*"]
+where = ["backend"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
 asyncio_mode = "auto"
+pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 
 [tool.ruff]

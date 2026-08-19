@@ -3,11 +3,11 @@ from __future__ import annotations
 import secrets
 from datetime import datetime
 
-from backend.app.modules.messaging.gateway import FakeDeliveryGateway
-from backend.app.modules.rfq.service import ProcurementExecutionService
-from backend.app.modules.rfq.store import InMemoryExecutionStore
-from backend.app.shared.runtime import FixedClock, SystemClock
-from backend.app.shared.tokens import SignedTokenService
+from app.modules.messaging.gateway import FakeDeliveryGateway
+from app.modules.rfq.service import ProcurementExecutionService
+from app.modules.rfq.store import InMemoryExecutionStore
+from app.shared.runtime import FixedClock, SystemClock
+from app.shared.tokens import SignedTokenService
 
 
 def create_execution_service(

@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
-from backend.app.modules.messaging.gateway import FakeDeliveryGateway
-from backend.app.modules.rfq.contracts import (
+from app.modules.messaging.gateway import FakeDeliveryGateway
+from app.modules.rfq.contracts import (
     CommandContextDTO,
     CompareQuotesCommand,
     CreateRFQRoundCommand,
@@ -17,10 +16,10 @@ from backend.app.modules.rfq.contracts import (
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-from backend.app.modules.rfq.service import ProcurementExecutionService
-from backend.app.modules.rfq.store import InMemoryExecutionStore
-from backend.app.shared.errors import DomainError, ErrorCode
-from backend.app.shared.tokens import SignedTokenService
+from app.modules.rfq.service import ProcurementExecutionService
+from app.modules.rfq.store import InMemoryExecutionStore
+from app.shared.errors import DomainError, ErrorCode
+from app.shared.tokens import SignedTokenService
 
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 REQUEST_ID = "pr_adversarial"
@@ -51,6 +50,7 @@ def build_service(*, auto_ack: bool) -> tuple[ProcurementExecutionService, Mutab
 
 def context(key: str) -> CommandContextDTO:
     return CommandContextDTO(
+        tenant_id="org_adversarial",
         idempotency_key=key,
         correlation_id="cor_adversarial",
         actor_type="agent",
@@ -495,4 +495,20 @@ async def test_response_tokens_reject_wrong_purpose_and_tampering():
     with pytest.raises(DomainError) as tampered:
         service.get_response_context(tampered_token)
     assert tampered.value.code == ErrorCode.INVALID_RESPONSE_TOKEN
+
+    recipient_id = service.delivery_gateway.messages[0].recipient_id
+    round_id = service.delivery_gateway.messages[0].metadata["rfq_round_id"]
+    wrong_tenant_token = service.token_service.issue(
+        "rfq_response",
+        recipient_id,
+        expires_at=service.store.rounds[round_id]["dto"].response_deadline,
+        metadata={
+            "rfq_round_id": round_id,
+            "supplier_id": "supplier_alpha",
+            "tenant_id": "org_other",
+        },
+    )
+    with pytest.raises(DomainError) as wrong_tenant:
+        service.get_response_context(wrong_tenant_token)
+    assert wrong_tenant.value.code == ErrorCode.INVALID_RESPONSE_TOKEN
     assert service.store.quotes == {}

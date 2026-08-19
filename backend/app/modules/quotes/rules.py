@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from backend.app.shared.errors import DomainError, ErrorCode
+from app.shared.errors import DomainError, ErrorCode
 
 _NO_DEFAULT = object()
 _MISSING = object()

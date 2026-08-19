@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import httpx
 import pytest
-
-from backend.app.main import create_app
-from backend.app.shared.errors import DomainError, ErrorCode
+from app.dev4_demo import create_app
+from app.shared.errors import DomainError, ErrorCode
 
 
 async def request(app, method: str, path: str) -> httpx.Response:
@@ -47,6 +46,7 @@ async def test_demo_endpoint_runs_full_path_and_returns_auditable_timeline():
     assert result["award"]["reservation_status"] == "CONFIRMED"
 
     event_types = [event["event_type"] for event in result["timeline"]]
+    assert {event["tenant_id"] for event in result["timeline"]} == {"org_demo"}
     assert event_types[0] == "RFQ_ROUND_CREATED"
     assert "QUOTE_COMPARISON_CREATED" in event_types
     assert "APPROVAL_GRANTED" in event_types

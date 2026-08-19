@@ -4,15 +4,15 @@ from copy import deepcopy
 from datetime import date
 from typing import Any
 
-from backend.app.modules.comparison.scoring import score_quotes
-from backend.app.modules.messaging.gateway import (
+from app.modules.comparison.scoring import score_quotes
+from app.modules.messaging.gateway import (
     DeliveryState,
     FakeDeliveryGateway,
     GatewayIdempotencyConflict,
     OutboundMessage,
 )
-from backend.app.modules.quotes.rules import validate_quote_submission
-from backend.app.modules.rfq.contracts import (
+from app.modules.quotes.rules import validate_quote_submission
+from app.modules.rfq.contracts import (
     ActorType,
     ApprovalDTO,
     ApprovalStatus,
@@ -42,10 +42,10 @@ from backend.app.modules.rfq.contracts import (
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-from backend.app.modules.rfq.store import InMemoryExecutionStore
-from backend.app.shared.errors import DomainError, ErrorCode, require
-from backend.app.shared.runtime import Clock, payload_hash
-from backend.app.shared.tokens import SignedTokenService, TokenValidationError
+from app.modules.rfq.store import InMemoryExecutionStore
+from app.shared.errors import DomainError, ErrorCode, require
+from app.shared.runtime import Clock, payload_hash
+from app.shared.tokens import SignedTokenService, TokenValidationError
 
 
 class ProcurementExecutionService:
@@ -118,6 +118,7 @@ class ProcurementExecutionService:
             }
         self.store.rounds[round_id] = {
             "dto": dto,
+            "tenant_id": command.context.tenant_id,
             "requirements": requirements,
             "policy": policy,
             "recipient_ids": recipient_ids,
@@ -162,6 +163,7 @@ class ProcurementExecutionService:
                     metadata={
                         "rfq_round_id": round_dto.rfq_round_id,
                         "supplier_id": recipient["supplier_id"],
+                        "tenant_id": round_record["tenant_id"],
                     },
                 )
                 recipient["response_token"] = token
@@ -175,7 +177,10 @@ class ProcurementExecutionService:
                         message_type="rfq",
                         body=f"RFQ {round_dto.rfq_round_id} response link",
                         response_token=token,
-                        metadata={"rfq_round_id": round_dto.rfq_round_id},
+                        metadata={
+                            "rfq_round_id": round_dto.rfq_round_id,
+                            "tenant_id": round_record["tenant_id"],
+                        },
                     )
                 )
             except GatewayIdempotencyConflict as error:
@@ -203,6 +208,11 @@ class ProcurementExecutionService:
         claims = self._validate_token(token, purpose="rfq_response")
         recipient = self._recipient(claims.subject)
         round_record = self._round(recipient["rfq_round_id"])
+        require(
+            claims.metadata.get("tenant_id") == round_record["tenant_id"],
+            ErrorCode.INVALID_RESPONSE_TOKEN,
+            "response token tenant does not match the RFQ",
+        )
         return RFQResponseContextDTO(
             rfq_round_id=recipient["rfq_round_id"],
             recipient_id=recipient["recipient_id"],
@@ -293,6 +303,7 @@ class ProcurementExecutionService:
         recipient["quote_id"] = quote_id
         round_record["collection_version"] += 1
         audit_context = CommandContextDTO(
+            tenant_id=round_record["tenant_id"],
             idempotency_key=f"quote:{quote_id}:v{quote_version}",
             correlation_id=f"cor:{context.rfq_round_id}",
             actor_type=ActorType.HUMAN,
@@ -540,6 +551,7 @@ class ProcurementExecutionService:
         )
         self.store.approvals[approval_id]["dto"] = updated
         context = CommandContextDTO(
+            tenant_id=self._tenant_for_request(current.procurement_request_id),
             idempotency_key=idempotency_key,
             correlation_id=f"cor:{current.procurement_request_id}",
             actor_type=ActorType.HUMAN,
@@ -601,7 +613,10 @@ class ProcurementExecutionService:
         token = self.token_service.issue(
             "award_response",
             award_id,
-            metadata={"supplier_id": quote.supplier_id},
+            metadata={
+                "supplier_id": quote.supplier_id,
+                "tenant_id": self._tenant_for_request(approval.procurement_request_id),
+            },
         )
         try:
             result = await self.delivery_gateway.send(
@@ -720,6 +735,12 @@ class ProcurementExecutionService:
             return replay
         current = await self.get_award_status(award_id)
         require(
+            claims.metadata.get("tenant_id")
+            == self._tenant_for_request(current.procurement_request_id),
+            ErrorCode.INVALID_RESPONSE_TOKEN,
+            "award token tenant does not match the procurement request",
+        )
+        require(
             current.status == AwardStatus.DELIVERED,
             ErrorCode.INVALID_STATE,
             "award must be delivered before acceptance",
@@ -736,6 +757,7 @@ class ProcurementExecutionService:
         self.store.awards[award_id]["accepted_by"] = respondent_name
         self.store.procurement_status[updated.procurement_request_id] = "SUPPLIER_ACCEPTED"
         context = CommandContextDTO(
+            tenant_id=self._tenant_for_request(updated.procurement_request_id),
             idempotency_key=idempotency_key,
             correlation_id=f"cor:{updated.procurement_request_id}",
             actor_type=ActorType.HUMAN,
@@ -852,6 +874,7 @@ class ProcurementExecutionService:
         self.store.awards[award_id]["dto"] = completed
         self.store.procurement_status[current.procurement_request_id] = "READY_FOR_CONTRACTING"
         context = CommandContextDTO(
+            tenant_id=self._tenant_for_request(current.procurement_request_id),
             idempotency_key=idempotency_key,
             correlation_id=f"cor:{current.procurement_request_id}",
             actor_type=ActorType.HUMAN,
@@ -977,11 +1000,18 @@ class ProcurementExecutionService:
 
     def _system_context(self, procurement_request_id: str) -> CommandContextDTO:
         return CommandContextDTO(
+            tenant_id=self._tenant_for_request(procurement_request_id),
             idempotency_key=f"system:{procurement_request_id}:{len(self.audit_events)}",
             correlation_id=f"cor:{procurement_request_id}",
             actor_type=ActorType.SYSTEM,
             actor_id="dev4_execution_service",
         )
+
+    def _tenant_for_request(self, procurement_request_id: str) -> str:
+        for round_record in self.store.rounds.values():
+            if round_record["dto"].procurement_request_id == procurement_request_id:
+                return str(round_record["tenant_id"])
+        raise DomainError(ErrorCode.NOT_FOUND, "procurement request tenant not found")
 
     def _round(self, rfq_round_id: str) -> dict[str, Any]:
         try:
@@ -1048,6 +1078,7 @@ class ProcurementExecutionService:
         self.store.audit_events.append(
             AuditEventDTO(
                 event_id=self._new_id("event"),
+                tenant_id=context.tenant_id,
                 event_type=event_type,
                 aggregate_type=aggregate_type,
                 aggregate_id=aggregate_id,
@@ -1073,7 +1104,7 @@ class ProcurementExecutionService:
             return None
         fingerprint, result = existing
         require(
-            fingerprint == payload_hash(payload),
+            fingerprint == self._idempotency_payload_hash(payload),
             ErrorCode.IDEMPOTENCY_CONFLICT,
             "idempotency key is already bound to another payload",
         )
@@ -1098,6 +1129,25 @@ class ProcurementExecutionService:
         result: Any,
     ) -> None:
         self.store.idempotency[(operation, idempotency_key)] = (
-            payload_hash(payload),
+            self._idempotency_payload_hash(payload),
             result.model_copy(deep=True) if hasattr(result, "model_copy") else deepcopy(result),
         )
+
+    @staticmethod
+    def _idempotency_payload_hash(payload: Any) -> str:
+        normalized = (
+            payload.model_dump(mode="python")
+            if hasattr(payload, "model_dump")
+            else deepcopy(payload)
+        )
+        if isinstance(normalized, dict):
+            normalized.pop("sourcing_run_id", None)
+            context = normalized.get("context")
+            if isinstance(context, dict):
+                for tracing_field in (
+                    "correlation_id",
+                    "causation_id",
+                    "agent_run_id",
+                ):
+                    context.pop(tracing_field, None)
+        return payload_hash(normalized)

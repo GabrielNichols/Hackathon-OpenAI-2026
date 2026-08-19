@@ -12,7 +12,7 @@ from typing import Annotated, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.app.shared.runtime import ensure_utc
+from app.shared.runtime import ensure_utc
 
 MoneyCents = Annotated[int, Field(strict=True, ge=0)]
 NonNegativeInt = Annotated[int, Field(strict=True, ge=0)]
@@ -114,6 +114,7 @@ class ReservationStatus(StrEnum):
 
 class CommandContextDTO(ContractDTO):
     contract_version: Literal["dev3-dev4.v0"] = "dev3-dev4.v0"
+    tenant_id: Annotated[str, Field(min_length=1, max_length=200)]
     idempotency_key: Annotated[str, Field(min_length=1, max_length=200)]
     correlation_id: Annotated[str, Field(min_length=1, max_length=200)]
     causation_id: Annotated[str, Field(min_length=1, max_length=200)] | None = None
@@ -437,6 +438,7 @@ class ReservationDTO(ContractDTO):
 
 class AuditEventDTO(ContractDTO):
     event_id: NonEmptyString
+    tenant_id: NonEmptyString
     event_type: NonEmptyString
     aggregate_type: NonEmptyString
     aggregate_id: NonEmptyString

@@ -11,8 +11,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
-from backend.app.bootstrap import create_execution_service
-from backend.app.modules.rfq.contracts import (
+from app.bootstrap import create_execution_service
+from app.modules.rfq.contracts import (
     ApprovalDTO,
     AuditEventDTO,
     AwardDTO,
@@ -29,7 +29,7 @@ from backend.app.modules.rfq.contracts import (
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-from backend.app.shared.errors import DomainError, ErrorCode
+from app.shared.errors import DomainError, ErrorCode
 
 DEMO_NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 DEMO_REQUEST_ID = "pr_demo_coffee_break"
@@ -252,6 +252,7 @@ async def run_canonical_demo() -> DemoRunResponse:
 
 def _context(idempotency_key: str) -> CommandContextDTO:
     return CommandContextDTO(
+        tenant_id="org_demo",
         idempotency_key=idempotency_key,
         correlation_id="cor_demo_api",
         actor_type="agent",

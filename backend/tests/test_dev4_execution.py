@@ -4,9 +4,8 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
-from backend.app.bootstrap import create_execution_service
-from backend.app.modules.rfq.contracts import (
+from app.bootstrap import create_execution_service
+from app.modules.rfq.contracts import (
     CommandContextDTO,
     CompareQuotesCommand,
     CreateRFQRoundCommand,
@@ -17,13 +16,14 @@ from backend.app.modules.rfq.contracts import (
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-from backend.app.shared.errors import DomainError
+from app.shared.errors import DomainError
 
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 
 
 def context(key: str, *, actor_type: str = "agent", actor_id: str = "agent_demo"):
     return CommandContextDTO(
+        tenant_id="org_demo",
         idempotency_key=key,
         correlation_id="cor_demo",
         actor_type=actor_type,
