@@ -10,7 +10,15 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from typing import Annotated, Literal, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from app.shared.runtime import ensure_utc
 
@@ -166,6 +174,7 @@ class RFQRequirementsSnapshotDTO(ContractDTO):
 class ExecutionPolicySnapshotDTO(ContractDTO):
     source_policy_version: PositiveInt
     minimum_confirmed_deliveries: PositiveInt = 1
+    minimum_valid_quotes: PositiveInt = 2
     maximum_follow_ups: NonNegativeInt = 0
     maximum_total_cents: MoneyCents | None = None
     target_total_cents: MoneyCents | None = None
@@ -285,6 +294,7 @@ class QuoteSubmissionDTO(ContractDTO):
     vegan_status: DietaryStatus
     gluten_free_status: DietaryStatus
     cross_contamination_warning: str | None = None
+    no_single_use_plastic_confirmed: bool | None = None
     valid_until: datetime
     cancellation_terms: NonEmptyString
     respondent_name: NonEmptyString
@@ -414,6 +424,8 @@ class AwardDTO(ContractDTO):
     approval_id: NonEmptyString
     approved_total_cents: MoneyCents
     currency: Literal["BRL"] = "BRL"
+    terms_snapshot_hash: NonEmptyString
+    accepted_terms_hash: str | None = None
     status: AwardStatus
     reservation_status: ReservationStatus = ReservationStatus.NOT_CREATED
     ready_for_contracting: bool = False
@@ -437,17 +449,47 @@ class ReservationDTO(ContractDTO):
 
 
 class AuditEventDTO(ContractDTO):
+    """Append-only description of a domain action and its state transition.
+
+    Transition and trace fields are optional at the contract boundary so rows
+    written by the earlier ``dev3-dev4.v0`` prototype remain decodable.  The
+    execution service nevertheless populates them for every newly emitted
+    event.
+    """
+
     event_id: NonEmptyString
     tenant_id: NonEmptyString
     event_type: NonEmptyString
     aggregate_type: NonEmptyString
     aggregate_id: NonEmptyString
     occurred_at: datetime
+    previous_state: str | None = None
+    new_state: str | None = None
     correlation_id: NonEmptyString
     causation_id: str | None = None
     actor_type: ActorType
     actor_id: NonEmptyString
+    origin: NonEmptyString | None = None
+    agent_run_id: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+    idempotency_key: Annotated[str, Field(min_length=1, max_length=200)] | None = None
     payload: dict[str, object] = Field(default_factory=dict)
+
+    @model_serializer(mode="wrap")
+    def _preserve_legacy_persisted_shape(
+        self,
+        handler: SerializerFunctionWrapHandler,
+    ) -> dict[str, object]:
+        serialized = handler(self)
+        for field_name in (
+            "previous_state",
+            "new_state",
+            "origin",
+            "agent_run_id",
+            "idempotency_key",
+        ):
+            if field_name not in self.model_fields_set:
+                serialized.pop(field_name, None)
+        return serialized
 
 
 @runtime_checkable

@@ -1,4 +1,42 @@
-# Dev 4 — protótipo operacional
+# Dev 4 — notas técnicas
+
+> **O modo oficial da apresentação agora é real.** Consulte
+> [`DEV4_LIVE_RUNBOOK.md`](DEV4_LIVE_RUNBOOK.md). As seções de fake abaixo
+> documentam apenas a fixture histórica de regressão `FAKE_DEMO`; ela não deve
+> ser publicada, apresentada nem conectada ao Dev 3.
+
+O runtime live está em `app.live.entrypoint` e usa PostgreSQL, estado cifrado,
+gateway de link manual auditado, autenticação humana e portais reais. O teste
+`test_live_real_e2e.py` cobre o fluxo completo e restart sem adapters fake.
+
+## P0 live oficial
+
+- SQLAlchemy/Unit of Work com estado, idempotência e auditoria duráveis;
+- capabilities individuais e gateway de envio manual com ações humanas
+  registradas sem transformar envio em entrega;
+- portais server-rendered de fornecedor e aprovador, com HTTPS, autenticação,
+  CSRF action-bound e transições apenas em POST explícito;
+- propostas versionadas, clarificação e regras eliminatórias executadas no
+  servidor;
+- comparação determinística observável em
+  `GET /live/operator/comparisons/{comparison_id}`, autenticada, tenant-scoped
+  e somente leitura;
+- matriz de comparação com elegibilidade, valores, requisitos, riscos,
+  evidências, score agregado e componentes do score;
+- tela de award que exibe o snapshot congelado completo por allowlist tipada:
+  proposta/versão, fornecedor, total/moeda, itens, substituições, cancelamento,
+  data, janela e pessoas;
+- aceite explícito vinculado ao hash visível desse snapshot e reserva em uma
+  ação separada;
+- evidência consolidada em
+  `GET /live/operator/runs/{procurement_request_id}`, autenticada, tenant-scoped
+  e somente leitura;
+- event log append-only com envelope auditável. Eventos novos registram
+  `origin`; transições registram `previous_state` e `new_state`; o contexto
+  preserva `agent_run_id` e `idempotency_key` quando aplicáveis. Campos que não
+  se aplicam permanecem nulos para manter compatibilidade com eventos antigos.
+
+## Fixture histórica de regressão
 
 Este worktree entrega um corte vertical executável do Plano 04:
 
@@ -13,10 +51,11 @@ RFQ imutável
 → READY_FOR_CONTRACTING
 ```
 
-O objetivo atual é provar as regras e o contrato de integração de ponta a
-ponta. A persistência e as ações externas ainda são adapters de demonstração.
+Essa fixture histórica prova regras de domínio de forma rápida. Somente nela a
+persistência e as ações externas são adapters de demonstração; isso não
+descreve o runtime live oficial acima.
 
-## O que está entregue no P0
+## O que a fixture histórica cobre
 
 - DTOs Pydantic versionados no boundary Dev 3 ↔ Dev 4;
 - snapshot imutável de requisitos e policy, com hashes;
@@ -35,10 +74,11 @@ ponta. A persistência e as ações externas ainda são adapters de demonstraç�
 - API mínima com health check e execução canônica;
 - testes de domínio, integração e API.
 
-## Limite explícito do fake
+## Limite explícito da fixture fake
 
-Este protótipo **não envia e-mail ou WhatsApp, não grava em banco e não reserva
-capacidade em um sistema externo**.
+O runner histórico **não envia e-mail ou WhatsApp, não grava em banco e não
+reserva capacidade em um sistema externo**. Essas limitações são do
+`FAKE_DEMO`, não do runtime `app.live.entrypoint`.
 
 - `InMemoryExecutionStore` perde o estado ao terminar o processo.
 - `FakeDeliveryGateway` simula o boundary do provedor e registra mensagens na
@@ -52,9 +92,8 @@ capacidade em um sistema externo**.
   `simulated_external_actions: true`.
 - Tokens de fornecedor não aparecem na resposta HTTP nem na timeline.
 
-Isso é intencional: os services recebem store, clock, token service e gateway
-por injeção. Um adapter real pode substituí-los sem alterar cálculo, scoring ou
-contratos.
+Isso é intencional: a fixture preserva um teste de regressão rápido. A demo
+oficial usa os adapters duráveis descritos no runbook.
 
 ## Instalação e testes
 
@@ -66,13 +105,11 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Resultado esperado no estado atual:
+O conjunto inclui testes unitários, adversariais, persistência, rotas e um E2E
+real com restart. O comando deve terminar integralmente verde; não congele a
+documentação em uma contagem específica enquanto os dois branches convergem.
 
-```text
-22 passed
-```
-
-## Demo por CLI
+## Runner CLI da fixture (nunca usar como demo live)
 
 Resumo verificado do fluxo:
 
@@ -96,7 +133,7 @@ O script termina com código diferente de zero se o modo fake deixar de estar
 explícito, se um componente de score não fechar, se faltar um evento material
 ou se o processo não chegar a `READY_FOR_CONTRACTING`.
 
-## Demo por API
+## API da fixture (nunca usar como demo live)
 
 Inicie o servidor:
 
@@ -125,9 +162,8 @@ Superfície HTTP atual:
 | `GET` | `/health` | readiness mínima do protótipo |
 | `POST` | `/api/v1/demo/run` | executa uma instância nova do cenário fake |
 
-Os endpoints individuais de RFQ, portal do fornecedor, aprovação e award são
-P1. O P0 atual expõe o fluxo completo em uma única rota para reduzir risco de
-integração durante o hackathon; cada etapa já existe separadamente no service.
+Essa superfície HTTP pertence somente ao `FAKE_DEMO`. Os portais e as rotas
+individuais reais são servidos por `app.live.entrypoint`; consulte o runbook.
 
 ## Contrato Dev 3 ↔ Dev 4
 
@@ -147,10 +183,11 @@ diferentes. A conexão atual é propositalmente feita por
 - considera retries com novo run/correlation como a mesma operação, mas ainda
   rejeita mudança de recipients, requirements ou policy.
 
-Na primeira integração, o orchestrator do Dev 3 deve receber esse adapter no
-lugar de `InMemoryRFQExecutionAdapter`. Não deve receber diretamente
-`ProcurementExecutionService`, porque os DTOs dos dois lados têm papéis
-distintos.
+Na primeira integração, **depois do merge**, o orchestrator do Dev 3 deve
+receber esse adapter no lugar de `InMemoryRFQExecutionAdapter`. Não deve
+receber diretamente `ProcurementExecutionService`, porque os DTOs dos dois
+lados têm papéis distintos. Até esse gate ser concluído, o E2E live valida o
+port durável do Dev 4 sem alegar que o orchestrator do Dev 3 já está conectado.
 
 Dev 3 depende de `RFQExecutionPort`:
 
@@ -189,19 +226,18 @@ Regras do handoff:
 No merge, o adapter deve ser injetado no orchestrator. O Dev 3 não deve criar
 um `InMemoryExecutionStore` nem importar a implementação concreta.
 
-## Próximos itens P1
+## Próximos itens após o P0 live
 
-Ordem recomendada:
+O P0 live já possui SQLAlchemy/UoW, lock concorrente por tenant, estado cifrado,
+idempotência, auditoria, links manuais reais, portais, autenticação,
+clarificação versionada, comparação/evidência observáveis e E2E de restart.
+Depois de integrar o Dev 3, a ordem recomendada é:
 
-1. Adaptar o lifecycle e os eventos aos contratos finais do Dev 1.
-2. Trocar o store por repositories SQLAlchemy e Unit of Work atômico.
-3. Persistir audit log, outbox, idempotência, tokens e delivery acknowledgments.
-4. Criar gateway real simples, com webhook/poll de ack e retry controlado.
-5. Expor routers individuais para RFQ, quote response, comparison, approval,
-   award response e timeline.
-6. Adicionar autenticação real de comprador/aprovador e autorização por org.
-7. Implementar draft, clarificação/uma rodada de negociação e anexos.
-8. Implementar as telas mobile do fornecedor e comparação/aprovação do buyer.
-9. Adicionar concorrência, partial delivery, stale approval e failure-path E2E.
+1. substituir o bootstrap `create_all` por migrations Alembic;
+2. adicionar rate limit distribuído e sessão web em vez de HTTP Basic;
+3. adicionar integração oficial de e-mail/WhatsApp mantendo ack verificável;
+4. adaptar lifecycle/eventos aos contratos finais do Dev 1;
+5. ampliar negotiation topics e anexos sem sair da policy;
+6. normalizar as tabelas do snapshot caso o produto avance além do hackathon.
 
 Pagamento, contrato, ERP e negociação aberta continuam fora do MVP.

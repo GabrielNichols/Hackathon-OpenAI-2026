@@ -1,6 +1,7 @@
 """Messaging adapters used by procurement execution."""
 
 from .gateway import (
+    DeliveryGateway,
     DeliveryRecord,
     DeliveryState,
     FakeDeliveryGateway,
@@ -10,8 +11,14 @@ from .gateway import (
     GatewaySendResult,
     OutboundMessage,
 )
+from .manual_link import (
+    ManualDeliveryAction,
+    ManualDeliveryChannel,
+    ManualLinkDeliveryAdapter,
+)
 
 __all__ = [
+    "DeliveryGateway",
     "DeliveryRecord",
     "DeliveryState",
     "FakeDeliveryGateway",
@@ -19,5 +26,8 @@ __all__ = [
     "GatewayIdempotencyConflict",
     "GatewayMessageNotFound",
     "GatewaySendResult",
+    "ManualDeliveryAction",
+    "ManualDeliveryChannel",
+    "ManualLinkDeliveryAdapter",
     "OutboundMessage",
 ]

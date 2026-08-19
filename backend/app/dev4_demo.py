@@ -212,6 +212,8 @@ async def run_canonical_demo() -> DemoRunResponse:
     accepted_award = await service.accept_award(
         award_response_token,
         respondent_name="Alpha",
+        terms_snapshot_hash=delivered_award.terms_snapshot_hash,
+        terms_accepted=True,
         idempotency_key="demo:award:accept",
     )
     completed_award = await service.confirm_reservation(
@@ -315,6 +317,7 @@ def _quote(*, total_cents: int, supplier_name: str) -> QuoteSubmissionDTO:
         vegan_status="confirmed",
         gluten_free_status="confirmed",
         cross_contamination_warning="producao separada sem certificacao",
+        no_single_use_plastic_confirmed=True,
         valid_until=DEMO_NOW + timedelta(hours=2),
         cancellation_terms="Cancelamento sem custo ate 24h antes",
         respondent_name=supplier_name,

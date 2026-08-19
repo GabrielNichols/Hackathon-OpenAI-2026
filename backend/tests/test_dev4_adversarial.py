@@ -132,6 +132,7 @@ def quote(
         vegan_status="confirmed",
         gluten_free_status="confirmed",
         cross_contamination_warning="producao separada sem certificacao",
+        no_single_use_plastic_confirmed=True,
         valid_until=clock.now() + validity,
         cancellation_terms="Cancelamento sem custo ate 24h antes",
         respondent_name=supplier_name,
@@ -236,6 +237,49 @@ async def test_reading_draft_delivery_status_does_not_mutate_round_or_version():
     assert stored.status == "DRAFT"
     assert stored.round_version == 1
     assert service.audit_events == events_before
+
+
+@pytest.mark.asyncio
+async def test_delivery_audit_records_command_and_system_transition_contexts():
+    service, clock = build_service(auto_ack=False)
+    created, delivery = await create_and_send(
+        service,
+        clock,
+        send_key="adv:send:audit",
+    )
+
+    dispatch = next(
+        event for event in service.audit_events if event.event_type == "RFQ_DISPATCH_STARTED"
+    )
+    assert dispatch.previous_state == "DRAFT"
+    assert dispatch.new_state == "DISPATCHING"
+    assert dispatch.origin == "delivery_gateway"
+    assert dispatch.agent_run_id == "run_adversarial"
+    assert dispatch.idempotency_key == "adv:send:audit"
+
+    first_message = service.delivery_gateway.messages[0]
+    service.delivery_gateway.ack(first_message.external_id)
+    await service.get_delivery_status(created.rfq_round_id)
+
+    delivered = next(
+        event
+        for event in service.audit_events
+        if event.event_type == "RFQ_DELIVERY_CONFIRMED"
+        and event.aggregate_id == delivery.deliveries[0].recipient_id
+    )
+    assert delivered.previous_state == "SENT_TO_GATEWAY"
+    assert delivered.new_state == "DELIVERED"
+    assert delivered.origin == "delivery_gateway"
+    assert delivered.actor_type == "system"
+    assert delivered.agent_run_id is None
+
+    activated = next(
+        event for event in service.audit_events if event.event_type == "RFQ_ROUND_ACTIVATED"
+    )
+    assert activated.previous_state == "DISPATCHING"
+    assert activated.new_state == "ACTIVE"
+    assert activated.origin == "delivery_gateway"
+    assert all(event.origin for event in service.audit_events)
 
 
 @pytest.mark.asyncio
@@ -410,6 +454,8 @@ async def test_award_and_reservation_are_unique_by_business_identity_not_only_ke
     accepted = await service.accept_award(
         service.delivery_gateway.messages[-1].response_token,
         respondent_name="Alpha",
+        terms_snapshot_hash=first_award.terms_snapshot_hash,
+        terms_accepted=True,
         idempotency_key="adv:accept",
     )
     first_reservation = await service.confirm_reservation(
@@ -443,6 +489,8 @@ async def test_reservation_rejects_different_actor_and_frozen_terms():
     accepted = await service.accept_award(
         service.delivery_gateway.messages[-1].response_token,
         respondent_name="Alpha",
+        terms_snapshot_hash=award.terms_snapshot_hash,
+        terms_accepted=True,
         idempotency_key="adv:accept:terms",
     )
 
@@ -485,6 +533,8 @@ async def test_response_tokens_reject_wrong_purpose_and_tampering():
         await service.accept_award(
             rfq_token,
             respondent_name="Alpha",
+            terms_snapshot_hash="not-used",
+            terms_accepted=True,
             idempotency_key="adv:token:wrong-purpose",
         )
     assert wrong_purpose.value.code == ErrorCode.INVALID_RESPONSE_TOKEN
@@ -512,3 +562,141 @@ async def test_response_tokens_reject_wrong_purpose_and_tampering():
         service.get_response_context(wrong_tenant_token)
     assert wrong_tenant.value.code == ErrorCode.INVALID_RESPONSE_TOKEN
     assert service.store.quotes == {}
+
+
+@pytest.mark.asyncio
+async def test_two_valid_quotes_and_explicit_sustainability_are_required():
+    service, clock = build_service(auto_ack=True)
+    created, _delivery = await create_and_send(service, clock)
+    alpha_message, beta_message = service.delivery_gateway.messages
+
+    missing_packaging_confirmation = quote(clock, 420_000, "Alpha")
+    missing_packaging_confirmation.no_single_use_plastic_confirmed = False
+    alpha_v1 = await service.submit_quote(
+        alpha_message.response_token,
+        missing_packaging_confirmation,
+        idempotency_key="adv:quote:alpha:v1",
+    )
+    await service.submit_quote(
+        beta_message.response_token,
+        quote(clock, 435_000, "Beta"),
+        idempotency_key="adv:quote:beta:v1",
+    )
+
+    status = await service.get_quote_status(created.rfq_round_id)
+    assert alpha_v1.status == "NEEDS_CLARIFICATION"
+    assert "NO_SINGLE_USE_PLASTIC_REQUIREMENT_NOT_MET" in alpha_v1.validation_errors
+    assert status.valid_count == 1
+    assert status.ready_for_comparison is False
+
+    with pytest.raises(DomainError) as insufficient:
+        await service.compare(
+            CompareQuotesCommand(
+                context=context("adv:compare:insufficient"),
+                procurement_request_id=REQUEST_ID,
+                rfq_round_id=created.rfq_round_id,
+                expected_quote_collection_version=status.collection_version,
+            )
+        )
+    assert insufficient.value.code == ErrorCode.INVALID_STATE
+
+    alpha_v2 = await service.submit_quote(
+        alpha_message.response_token,
+        quote(clock, 420_000, "Alpha"),
+        idempotency_key="adv:quote:alpha:v2",
+    )
+    refreshed = await service.get_quote_status(created.rfq_round_id)
+    assert alpha_v2.quote_version == 2
+    assert alpha_v2.status == "FINAL"
+    assert refreshed.valid_count == 2
+    assert refreshed.ready_for_comparison is True
+    assert any(
+        event.event_type == "CLARIFICATION_ANSWERED"
+        for event in service.audit_events
+    )
+
+
+@pytest.mark.asyncio
+async def test_quote_post_idempotency_conflict_and_approval_invalidation():
+    service, clock = build_service(auto_ack=True)
+    created, _delivery = await create_and_send(service, clock)
+    alpha_message, beta_message = service.delivery_gateway.messages
+    alpha_v1 = await service.submit_quote(
+        alpha_message.response_token,
+        quote(clock, 420_000, "Alpha"),
+        idempotency_key="adv:quote:alpha:stable-key",
+    )
+    await service.submit_quote(
+        beta_message.response_token,
+        quote(clock, 435_000, "Beta"),
+        idempotency_key="adv:quote:beta:stable-key",
+    )
+
+    with pytest.raises(DomainError) as conflicting_retry:
+        await service.submit_quote(
+            alpha_message.response_token,
+            quote(clock, 410_000, "Alpha"),
+            idempotency_key="adv:quote:alpha:stable-key",
+        )
+    assert conflicting_retry.value.code == ErrorCode.IDEMPOTENCY_CONFLICT
+
+    status = await service.get_quote_status(created.rfq_round_id)
+    comparison = await service.compare(
+        CompareQuotesCommand(
+            context=context("adv:compare:before-update"),
+            procurement_request_id=REQUEST_ID,
+            rfq_round_id=created.rfq_round_id,
+            expected_quote_collection_version=status.collection_version,
+        )
+    )
+    assert comparison.recommended_quote is not None
+    approval = await service.request_approval(
+        RequestApprovalCommand(
+            context=context("adv:approval:before-update"),
+            procurement_request_id=REQUEST_ID,
+            comparison_id=comparison.comparison_id,
+            comparison_version=comparison.comparison_version,
+            selected_quote=comparison.recommended_quote,
+            approver_user_id=APPROVER_ID,
+        )
+    )
+    assert comparison.recommended_quote.quote_id == alpha_v1.quote_id
+
+    await service.submit_quote(
+        alpha_message.response_token,
+        quote(clock, 410_000, "Alpha"),
+        idempotency_key="adv:quote:alpha:new-version",
+    )
+    invalidated = await service.get_approval_status(approval.approval_id)
+    assert invalidated.status == "INVALIDATED"
+    assert any(
+        event.event_type == "APPROVAL_INVALIDATED"
+        for event in service.audit_events
+    )
+
+
+@pytest.mark.asyncio
+async def test_award_acceptance_binds_displayed_terms_and_decline_is_real():
+    service, clock = build_service(auto_ack=True)
+    _comparison, _approved, award = await approved_award(service, clock)
+    award_token = service.delivery_gateway.messages[-1].response_token
+
+    with pytest.raises(DomainError) as stale_terms:
+        await service.accept_award(
+            award_token,
+            respondent_name="Alpha",
+            terms_snapshot_hash="0" * 64,
+            terms_accepted=True,
+            idempotency_key="adv:accept:wrong-terms",
+        )
+    assert stale_terms.value.code == ErrorCode.STALE_VERSION
+
+    declined = await service.decline_award(
+        award_token,
+        respondent_name="Alpha",
+        reason="Capacidade indisponível",
+        idempotency_key="adv:award:decline",
+    )
+    assert declined.award_id == award.award_id
+    assert declined.status == "DECLINED"
+    assert service.get_procurement_status(REQUEST_ID) == "AWARD_DECLINED"

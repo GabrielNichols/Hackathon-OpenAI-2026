@@ -8,8 +8,11 @@ version = "0.1.0"
 description = "Canal Agente procurement execution prototype"
 requires-python = ">=3.12"
 dependencies = [
+  "cryptography>=45,<47",
   "fastapi>=0.116,<1",
   "pydantic>=2.11,<3",
+  "psycopg[binary]>=3.2,<4",
+  "SQLAlchemy>=2.0,<3",
   "uvicorn>=0.35,<1",
 ]
 

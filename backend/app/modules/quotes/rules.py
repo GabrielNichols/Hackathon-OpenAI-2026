@@ -277,10 +277,12 @@ def validate_quote_submission(
     if gluten_free_count > 0 and (not isinstance(warning, str) or not warning.strip()):
         risks.append("CROSS_CONTAMINATION_INFORMATION_MISSING")
 
-    if _value(requirements, "no_single_use_plastic", None) is True:
-        # The v0 quote contract has no explicit packaging confirmation.
-        # Preserve uncertainty instead of inferring it from a sustainability score.
-        risks.append("NO_SINGLE_USE_PLASTIC_NOT_EXPLICITLY_CONFIRMED")
+    if (
+        _value(requirements, "no_single_use_plastic", None) is True
+        and _value(submission, "no_single_use_plastic_confirmed", None) is not True
+    ):
+        eligible = False
+        risks.append("NO_SINGLE_USE_PLASTIC_REQUIREMENT_NOT_MET")
 
     return QuoteValidationResult(
         total_cents=calculated_total,

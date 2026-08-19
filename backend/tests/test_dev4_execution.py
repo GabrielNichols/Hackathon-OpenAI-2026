@@ -5,7 +5,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.bootstrap import create_execution_service
+from app.live.codec import decode_state, encode_state
 from app.modules.rfq.contracts import (
+    AuditEventDTO,
     CommandContextDTO,
     CompareQuotesCommand,
     CreateRFQRoundCommand,
@@ -19,6 +21,55 @@ from app.modules.rfq.contracts import (
 from app.shared.errors import DomainError
 
 NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
+
+
+def test_audit_contract_keeps_legacy_rows_decodable_and_codec_preserves_trace_fields():
+    legacy = AuditEventDTO(
+        event_id="event_legacy",
+        tenant_id="org_demo",
+        event_type="LEGACY_EVENT",
+        aggregate_type="rfq_round",
+        aggregate_id="rfq_legacy",
+        occurred_at=NOW,
+        correlation_id="cor_legacy",
+        actor_type="system",
+        actor_id="legacy_service",
+    )
+
+    assert legacy.previous_state is None
+    assert legacy.new_state is None
+    assert legacy.origin is None
+    assert legacy.agent_run_id is None
+    assert legacy.idempotency_key is None
+
+    legacy_encoded = encode_state(legacy)
+    encoded_field_names = {
+        pair[0] for pair in legacy_encoded["data"]["items"]
+    }
+    assert "previous_state" not in encoded_field_names
+    assert "new_state" not in encoded_field_names
+    assert "origin" not in encoded_field_names
+    assert "agent_run_id" not in encoded_field_names
+    assert "idempotency_key" not in encoded_field_names
+    assert encode_state(decode_state(legacy_encoded)) == legacy_encoded
+
+    enriched = legacy.model_copy(
+        update={
+            "previous_state": "DRAFT",
+            "new_state": "ACTIVE",
+            "origin": "delivery_gateway",
+            "agent_run_id": "run_legacy_replay",
+            "idempotency_key": "idem_legacy_replay",
+        }
+    )
+    restored = decode_state(encode_state(enriched))
+
+    assert restored == enriched
+    assert restored.previous_state == "DRAFT"
+    assert restored.new_state == "ACTIVE"
+    assert restored.origin == "delivery_gateway"
+    assert restored.agent_run_id == "run_legacy_replay"
+    assert restored.idempotency_key == "idem_legacy_replay"
 
 
 def context(key: str, *, actor_type: str = "agent", actor_id: str = "agent_demo"):
@@ -99,6 +150,7 @@ def quote(total_cents: int, supplier_name: str) -> QuoteSubmissionDTO:
         vegan_status="confirmed",
         gluten_free_status="confirmed",
         cross_contamination_warning="producao separada sem certificacao",
+        no_single_use_plastic_confirmed=True,
         valid_until=NOW + timedelta(hours=2),
         cancellation_terms="Cancelamento sem custo ate 24h antes",
         respondent_name=supplier_name,
@@ -128,6 +180,22 @@ async def test_create_round_freezes_snapshot_and_is_idempotent():
     conflicting.recipient_supplier_ids = ["supplier_alpha"]
     with pytest.raises(DomainError, match="IDEMPOTENCY_CONFLICT"):
         await service.create_round(conflicting)
+
+
+@pytest.mark.asyncio
+async def test_command_audit_preserves_agent_trace_origin_and_created_state():
+    service = create_execution_service(now=NOW)
+
+    created = await service.create_round(create_command("idem_audit_create"))
+
+    event = service.audit_events[-1]
+    assert event.event_type == "RFQ_ROUND_CREATED"
+    assert event.aggregate_id == created.rfq_round_id
+    assert event.previous_state is None
+    assert event.new_state == "DRAFT"
+    assert event.origin == "execution_command"
+    assert event.agent_run_id == "run_demo"
+    assert event.idempotency_key == "idem_audit_create"
 
 
 @pytest.mark.asyncio
@@ -301,6 +369,8 @@ async def test_full_procurement_happy_path_reaches_ready_for_contracting():
     accepted = await service.accept_award(
         award_message.response_token,
         respondent_name="Alpha",
+        terms_snapshot_hash=award.terms_snapshot_hash,
+        terms_accepted=True,
         idempotency_key="idem_accept_e2e",
     )
     assert accepted.ready_for_contracting is False

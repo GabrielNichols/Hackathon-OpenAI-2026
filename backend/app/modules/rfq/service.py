@@ -6,8 +6,8 @@ from typing import Any
 
 from app.modules.comparison.scoring import score_quotes
 from app.modules.messaging.gateway import (
+    DeliveryGateway,
     DeliveryState,
-    FakeDeliveryGateway,
     GatewayIdempotencyConflict,
     OutboundMessage,
 )
@@ -42,7 +42,7 @@ from app.modules.rfq.contracts import (
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-from app.modules.rfq.store import InMemoryExecutionStore
+from app.modules.rfq.store import ExecutionStore
 from app.shared.errors import DomainError, ErrorCode, require
 from app.shared.runtime import Clock, payload_hash
 from app.shared.tokens import SignedTokenService, TokenValidationError
@@ -59,16 +59,15 @@ class ProcurementExecutionService:
     def __init__(
         self,
         *,
-        store: InMemoryExecutionStore,
+        store: ExecutionStore,
         clock: Clock,
         token_service: SignedTokenService,
-        delivery_gateway: FakeDeliveryGateway,
+        delivery_gateway: DeliveryGateway,
     ) -> None:
         self.store = store
         self.clock = clock
         self.token_service = token_service
         self.delivery_gateway = delivery_gateway
-        self._id_counters: dict[str, int] = {}
 
     @property
     def audit_events(self) -> list[AuditEventDTO]:
@@ -82,6 +81,12 @@ class ProcurementExecutionService:
             command.response_deadline > self.clock.now(),
             ErrorCode.VALIDATION_ERROR,
             "response_deadline must be in the future",
+        )
+        require(
+            command.execution_policy.minimum_valid_quotes
+            <= len(command.recipient_supplier_ids),
+            ErrorCode.VALIDATION_ERROR,
+            "minimum_valid_quotes cannot exceed recipient count",
         )
 
         round_id = self._new_id("rfq")
@@ -131,6 +136,9 @@ class ProcurementExecutionService:
             round_id,
             command.context,
             {"recipient_count": len(recipient_ids)},
+            previous_state=None,
+            new_state=dto.status,
+            origin="execution_command",
         )
         self._remember_idempotency("rfq.create", command.context, command, dto)
         return dto
@@ -140,6 +148,11 @@ class ProcurementExecutionService:
         if replay is not None:
             return replay
         round_record = self._round(command.rfq_round_id)
+        require(
+            round_record["tenant_id"] == command.context.tenant_id,
+            ErrorCode.POLICY_DENIED,
+            "RFQ round belongs to another tenant",
+        )
         round_dto: RFQRoundDTO = round_record["dto"]
         require(
             round_dto.round_version == command.expected_round_version,
@@ -154,6 +167,7 @@ class ProcurementExecutionService:
 
         for recipient_id in round_record["recipient_ids"]:
             recipient = self.store.recipients[recipient_id]
+            previous_delivery_status = str(recipient["status"])
             token = recipient["response_token"]
             if token is None:
                 token = self.token_service.issue(
@@ -170,7 +184,10 @@ class ProcurementExecutionService:
             try:
                 result = await self.delivery_gateway.send(
                     OutboundMessage(
-                        idempotency_key=(f"rfq:{round_dto.rfq_round_id}:recipient:{recipient_id}"),
+                        idempotency_key=(
+                            f"{round_record['tenant_id']}:rfq:"
+                            f"{round_dto.rfq_round_id}:recipient:{recipient_id}"
+                        ),
                         recipient_id=recipient_id,
                         supplier_id=recipient["supplier_id"],
                         channel=str(command.channel),
@@ -193,8 +210,23 @@ class ProcurementExecutionService:
             recipient["status"] = str(result.status)
             if result.status == DeliveryState.DELIVERED:
                 recipient["delivered_at"] = self.clock.now()
+                if not recipient["delivery_event_emitted"]:
+                    self._audit(
+                        "RFQ_DELIVERY_CONFIRMED",
+                        "rfq_recipient",
+                        recipient_id,
+                        command.context,
+                        {"external_id": result.external_id},
+                        previous_state=previous_delivery_status,
+                        new_state=DeliveryStatus.DELIVERED,
+                        origin="delivery_gateway",
+                    )
+                    recipient["delivery_event_emitted"] = True
 
-        batch = await self._refresh_delivery_batch(round_dto.rfq_round_id)
+        batch = await self._refresh_delivery_batch(
+            round_dto.rfq_round_id,
+            audit_context=command.context,
+        )
         self._remember_idempotency("rfq.send", command.context, command, batch)
         return batch
 
@@ -221,8 +253,29 @@ class ProcurementExecutionService:
             response_deadline=round_record["dto"].response_deadline,
         )
 
-    async def submit_quote(self, token: str, submission: QuoteSubmissionDTO) -> QuoteDTO:
+    async def submit_quote(
+        self,
+        token: str,
+        submission: QuoteSubmissionDTO,
+        *,
+        idempotency_key: str | None = None,
+    ) -> QuoteDTO:
         context = self.get_response_context(token)
+        idempotency_payload = {
+            "recipient_id": context.recipient_id,
+            "submission": submission,
+        }
+        quote_operation = (
+            f"{self._round(context.rfq_round_id)['tenant_id']}:quote.submit"
+        )
+        if idempotency_key is not None:
+            replay = self._raw_idempotent_replay(
+                quote_operation,
+                idempotency_key,
+                idempotency_payload,
+            )
+            if replay is not None:
+                return replay
         recipient = self._recipient(context.recipient_id)
         require(
             recipient["external_id"] is not None,
@@ -264,6 +317,7 @@ class ProcurementExecutionService:
             "VEGETARIAN_REQUIREMENT_NOT_CONFIRMED",
             "VEGAN_REQUIREMENT_NOT_CONFIRMED",
             "GLUTEN_FREE_REQUIREMENT_NOT_CONFIRMED",
+            "NO_SINGLE_USE_PLASTIC_REQUIREMENT_NOT_MET",
         }
         errors = [risk for risk in validation.risks if risk in disqualifying_codes]
         warnings = [risk for risk in validation.risks if risk not in disqualifying_codes]
@@ -276,11 +330,37 @@ class ProcurementExecutionService:
             existing_quote is not None
             and existing_quote.get("submission_hash") == submission_fingerprint
         ):
-            return existing_quote["dto"].model_copy(deep=True)
+            unchanged = existing_quote["dto"].model_copy(deep=True)
+            if idempotency_key is not None:
+                self._remember_raw_idempotency(
+                    quote_operation,
+                    idempotency_key,
+                    idempotency_payload,
+                    unchanged,
+                )
+            return unchanged
+        if existing_quote is not None:
+            quote_id_with_pending_change = existing_quote["dto"].quote_id
+            award_exists = any(
+                approval_record["dto"].selected_quote.quote_id
+                == quote_id_with_pending_change
+                and approval_record["dto"].approval_id
+                in self.store.award_by_approval_id
+                for approval_record in self.store.approvals.values()
+            )
+            require(
+                not award_exists,
+                ErrorCode.INVALID_STATE,
+                "quote cannot change after an award is created",
+            )
+        previous_quote_status = (
+            existing_quote["dto"].status if existing_quote is not None else None
+        )
         quote_id = existing_quote["dto"].quote_id if existing_quote else self._new_id("quote")
         quote_version = existing_quote["dto"].quote_version + 1 if existing_quote else 1
         submission_payload = submission.model_dump()
         submission_payload["total_cents"] = validation.total_cents
+        submission_payload["respondent_contact"] = "[redacted-after-validation]"
         dto = QuoteDTO(
             **submission_payload,
             quote_id=quote_id,
@@ -309,14 +389,49 @@ class ProcurementExecutionService:
             actor_type=ActorType.HUMAN,
             actor_id=context.supplier_id,
         )
-        self._audit("QUOTE_SUBMITTED", "quote", quote_id, audit_context, {"version": quote_version})
+        self._audit(
+            "QUOTE_SUBMITTED",
+            "quote",
+            quote_id,
+            audit_context,
+            {"version": quote_version},
+            previous_state=previous_quote_status,
+            new_state=dto.status,
+            origin="supplier_response",
+        )
         self._audit(
             "QUOTE_VALIDATED" if dto.eligible else "QUOTE_NEEDS_CLARIFICATION",
             "quote",
             quote_id,
             audit_context,
             {"errors": errors},
+            previous_state=previous_quote_status,
+            new_state=dto.status,
+            origin="quote_validation",
         )
+        if previous_quote_status == QuoteStatus.NEEDS_CLARIFICATION:
+            self._audit(
+                "CLARIFICATION_ANSWERED",
+                "quote",
+                quote_id,
+                audit_context,
+                {
+                    "quote_version": quote_version,
+                    "resolved": dto.status == QuoteStatus.FINAL,
+                },
+                previous_state=QuoteStatus.NEEDS_CLARIFICATION,
+                new_state=dto.status,
+                origin="supplier_response",
+            )
+        if existing_quote is not None:
+            self._invalidate_approvals_for_quote(dto, audit_context)
+        if idempotency_key is not None:
+            self._remember_raw_idempotency(
+                quote_operation,
+                idempotency_key,
+                idempotency_payload,
+                dto,
+            )
         return dto
 
     async def get_quote_status(self, rfq_round_id: str) -> QuoteCollectionStatusDTO:
@@ -330,6 +445,7 @@ class ProcurementExecutionService:
         declined_count = sum(quote.status == QuoteStatus.DECLINED for quote in quotes)
         expected = len(round_record["recipient_ids"])
         submitted = len(quotes)
+        minimum_valid_quotes = round_record["policy"].minimum_valid_quotes
         return QuoteCollectionStatusDTO(
             rfq_round_id=rfq_round_id,
             collection_version=round_record["collection_version"],
@@ -340,7 +456,7 @@ class ProcurementExecutionService:
             needs_clarification_count=clarification_count,
             declined_count=declined_count,
             pending_count=max(0, expected - submitted),
-            ready_for_comparison=valid_count > 0,
+            ready_for_comparison=valid_count >= minimum_valid_quotes,
             updated_at=self.clock.now(),
         )
 
@@ -349,6 +465,11 @@ class ProcurementExecutionService:
         if replay is not None:
             return replay
         round_record = self._round(command.rfq_round_id)
+        require(
+            round_record["tenant_id"] == command.context.tenant_id,
+            ErrorCode.POLICY_DENIED,
+            "RFQ round belongs to another tenant",
+        )
         self._expire_quotes(round_record)
         require(
             round_record["dto"].procurement_request_id == command.procurement_request_id,
@@ -361,10 +482,11 @@ class ProcurementExecutionService:
             "quote collection changed",
         )
         quotes = self._quotes_for_round(command.rfq_round_id)
+        eligible_quotes = [quote for quote in quotes if quote.eligible]
         require(
-            any(quote.eligible for quote in quotes),
+            len(eligible_quotes) >= round_record["policy"].minimum_valid_quotes,
             ErrorCode.INVALID_STATE,
-            "no eligible quotes to compare",
+            "not enough eligible quotes to compare",
         )
         policy = round_record["policy"]
         scored_quotes = score_quotes(quotes, policy)
@@ -422,6 +544,9 @@ class ProcurementExecutionService:
             comparison_id,
             command.context,
             {"recommended_quote_id": selected.quote_id},
+            previous_state=None,
+            new_state=dto.status,
+            origin="execution_command",
         )
         self._remember_idempotency("quotes.compare", command.context, command, dto)
         return dto
@@ -431,6 +556,12 @@ class ProcurementExecutionService:
         if replay is not None:
             return replay
         comparison = self._comparison(command.comparison_id)
+        comparison_round = self._round(comparison.rfq_round_id)
+        require(
+            comparison_round["tenant_id"] == command.context.tenant_id,
+            ErrorCode.POLICY_DENIED,
+            "comparison belongs to another tenant",
+        )
         require(
             comparison.procurement_request_id == command.procurement_request_id,
             ErrorCode.VALIDATION_ERROR,
@@ -487,7 +618,16 @@ class ProcurementExecutionService:
             requested_at=self.clock.now(),
         )
         self.store.approvals[approval_id] = {"dto": dto}
-        self._audit("APPROVAL_REQUESTED", "approval", approval_id, command.context, {})
+        self._audit(
+            "APPROVAL_REQUESTED",
+            "approval",
+            approval_id,
+            command.context,
+            {},
+            previous_state=None,
+            new_state=dto.status,
+            origin="execution_command",
+        )
         self._remember_idempotency("approval.request", command.context, command, dto)
         return dto
 
@@ -504,7 +644,10 @@ class ProcurementExecutionService:
         idempotency_key: str,
         reason: str | None = None,
     ) -> ApprovalDTO:
-        operation = "approval.decide"
+        current = self._approval(approval_id)
+        operation = (
+            f"{self._tenant_for_request(current.procurement_request_id)}:approval.decide"
+        )
         payload = {
             "approval_id": approval_id,
             "actor_type": actor_type,
@@ -516,7 +659,6 @@ class ProcurementExecutionService:
         if replay is not None:
             return replay
         require(actor_type == "human", ErrorCode.POLICY_DENIED, "only a human can approve")
-        current = self._approval(approval_id)
         require(
             current.approver_user_id == actor_id,
             ErrorCode.POLICY_DENIED,
@@ -563,6 +705,9 @@ class ProcurementExecutionService:
             approval_id,
             context,
             {"selected_quote": current.selected_quote.model_dump()},
+            previous_state=current.status,
+            new_state=updated.status,
+            origin="approval_decision",
         )
         if approve:
             self.store.procurement_status[current.procurement_request_id] = "APPROVED"
@@ -574,6 +719,12 @@ class ProcurementExecutionService:
         if replay is not None:
             return replay
         approval = self._approval(command.approval_id)
+        require(
+            self._tenant_for_request(approval.procurement_request_id)
+            == command.context.tenant_id,
+            ErrorCode.POLICY_DENIED,
+            "approval belongs to another tenant",
+        )
         require(
             approval.procurement_request_id == command.procurement_request_id,
             ErrorCode.VALIDATION_ERROR,
@@ -622,7 +773,9 @@ class ProcurementExecutionService:
             result = await self.delivery_gateway.send(
                 OutboundMessage(
                     idempotency_key=(
-                        f"award:approval:{approval.approval_id}:v{approval.approval_version}"
+                        f"{self._tenant_for_request(approval.procurement_request_id)}:"
+                        f"award:approval:{approval.approval_id}:"
+                        f"v{approval.approval_version}"
                     ),
                     recipient_id=quote.recipient_id,
                     supplier_id=quote.supplier_id,
@@ -630,7 +783,13 @@ class ProcurementExecutionService:
                     message_type="award",
                     body=f"Award {award_id} acceptance link",
                     response_token=token,
-                    metadata={"approval_id": approval.approval_id},
+                    metadata={
+                        "approval_id": approval.approval_id,
+                        "award_id": award_id,
+                        "tenant_id": self._tenant_for_request(
+                            approval.procurement_request_id
+                        ),
+                    },
                 )
             )
         except GatewayIdempotencyConflict as error:
@@ -643,6 +802,21 @@ class ProcurementExecutionService:
             if result.status == DeliveryState.DELIVERED
             else AwardStatus.SENT_TO_GATEWAY
         )
+        requirements = self._round(quote.rfq_round_id)["requirements"]
+        terms_snapshot = {
+            "quote_id": quote.quote_id,
+            "quote_version": quote.quote_version,
+            "supplier_id": quote.supplier_id,
+            "total_cents": quote.total_cents,
+            "currency": "BRL",
+            "included_items": list(quote.included_items),
+            "substitutions": list(quote.substitutions),
+            "cancellation_terms": quote.cancellation_terms,
+            "event_date": requirements.event_date,
+            "delivery_time": requirements.delivery_time,
+            "people_count": requirements.people_count,
+        }
+        terms_snapshot_hash = payload_hash(terms_snapshot)
         dto = AwardDTO(
             award_id=award_id,
             award_version=1,
@@ -651,6 +825,7 @@ class ProcurementExecutionService:
             approved_quote=approval.selected_quote,
             approval_id=approval.approval_id,
             approved_total_cents=quote.total_cents,
+            terms_snapshot_hash=terms_snapshot_hash,
             status=status,
             delivered_at=self.clock.now() if status == AwardStatus.DELIVERED else None,
             updated_at=self.clock.now(),
@@ -661,11 +836,30 @@ class ProcurementExecutionService:
             "response_token": token,
             "delivery_event_emitted": status == AwardStatus.DELIVERED,
             "accepted_by": None,
+            "terms_snapshot": terms_snapshot,
         }
         self.store.award_by_approval_id[approval.approval_id] = award_id
-        self._audit("AWARD_CREATED", "award", award_id, command.context, {})
+        self._audit(
+            "AWARD_CREATED",
+            "award",
+            award_id,
+            command.context,
+            {},
+            previous_state=None,
+            new_state=dto.status,
+            origin="execution_command",
+        )
         if status == AwardStatus.DELIVERED:
-            self._audit("AWARD_DELIVERY_CONFIRMED", "award", award_id, command.context, {})
+            self._audit(
+                "AWARD_DELIVERY_CONFIRMED",
+                "award",
+                award_id,
+                command.context,
+                {},
+                previous_state=AwardStatus.SENT_TO_GATEWAY,
+                new_state=AwardStatus.DELIVERED,
+                origin="delivery_gateway",
+            )
             self.store.procurement_status[command.procurement_request_id] = "AWARD_SENT"
         self._remember_idempotency("award.send", command.context, command, dto)
         return dto
@@ -695,6 +889,9 @@ class ProcurementExecutionService:
                     award_id,
                     self._system_context(current.procurement_request_id),
                     {"external_id": record["external_id"]},
+                    previous_state=AwardStatus.SENT_TO_GATEWAY,
+                    new_state=AwardStatus.DELIVERED,
+                    origin="delivery_gateway",
                 )
                 record["delivery_event_emitted"] = True
         elif (
@@ -717,6 +914,9 @@ class ProcurementExecutionService:
                     "external_id": record["external_id"],
                     "reason": status.failure_reason,
                 },
+                previous_state=AwardStatus.SENT_TO_GATEWAY,
+                new_state=AwardStatus.FAILED,
+                origin="delivery_gateway",
             )
         return current
 
@@ -725,12 +925,20 @@ class ProcurementExecutionService:
         token: str,
         *,
         respondent_name: str,
+        terms_snapshot_hash: str,
+        terms_accepted: bool,
         idempotency_key: str,
     ) -> AwardDTO:
         claims = self._validate_token(token, purpose="award_response")
         award_id = claims.subject
-        payload = {"award_id": award_id, "respondent_name": respondent_name}
-        replay = self._raw_idempotent_replay("award.accept", idempotency_key, payload)
+        operation = f"{claims.metadata.get('tenant_id')}:award.accept"
+        payload = {
+            "award_id": award_id,
+            "respondent_name": respondent_name,
+            "terms_snapshot_hash": terms_snapshot_hash,
+            "terms_accepted": terms_accepted,
+        }
+        replay = self._raw_idempotent_replay(operation, idempotency_key, payload)
         if replay is not None:
             return replay
         current = await self.get_award_status(award_id)
@@ -745,10 +953,21 @@ class ProcurementExecutionService:
             ErrorCode.INVALID_STATE,
             "award must be delivered before acceptance",
         )
+        require(
+            terms_accepted,
+            ErrorCode.VALIDATION_ERROR,
+            "award terms must be explicitly accepted",
+        )
+        require(
+            terms_snapshot_hash == current.terms_snapshot_hash,
+            ErrorCode.STALE_VERSION,
+            "award terms changed before acceptance",
+        )
         updated = current.model_copy(
             update={
                 "award_version": current.award_version + 1,
                 "status": AwardStatus.ACCEPTED,
+                "accepted_terms_hash": current.terms_snapshot_hash,
                 "responded_at": self.clock.now(),
                 "updated_at": self.clock.now(),
             }
@@ -763,8 +982,96 @@ class ProcurementExecutionService:
             actor_type=ActorType.HUMAN,
             actor_id=respondent_name,
         )
-        self._audit("SUPPLIER_ACCEPTED_AWARD", "award", award_id, context, {})
-        self._remember_raw_idempotency("award.accept", idempotency_key, payload, updated)
+        self._audit(
+            "SUPPLIER_ACCEPTED_AWARD",
+            "award",
+            award_id,
+            context,
+            {},
+            previous_state=current.status,
+            new_state=updated.status,
+            origin="supplier_response",
+        )
+        self._remember_raw_idempotency(operation, idempotency_key, payload, updated)
+        return updated
+
+    async def decline_award(
+        self,
+        token: str,
+        *,
+        respondent_name: str,
+        reason: str,
+        idempotency_key: str,
+    ) -> AwardDTO:
+        claims = self._validate_token(token, purpose="award_response")
+        award_id = claims.subject
+        operation = f"{claims.metadata.get('tenant_id')}:award.decline"
+        payload = {
+            "award_id": award_id,
+            "respondent_name": respondent_name,
+            "reason": reason,
+        }
+        replay = self._raw_idempotent_replay(operation, idempotency_key, payload)
+        if replay is not None:
+            return replay
+        require(
+            bool(respondent_name.strip()),
+            ErrorCode.VALIDATION_ERROR,
+            "name is required",
+        )
+        require(
+            bool(reason.strip()),
+            ErrorCode.VALIDATION_ERROR,
+            "decline reason is required",
+        )
+        current = await self.get_award_status(award_id)
+        require(
+            claims.metadata.get("tenant_id")
+            == self._tenant_for_request(current.procurement_request_id),
+            ErrorCode.INVALID_RESPONSE_TOKEN,
+            "award token tenant does not match the procurement request",
+        )
+        require(
+            current.status == AwardStatus.DELIVERED,
+            ErrorCode.INVALID_STATE,
+            "award must be delivered before it can be declined",
+        )
+        updated = current.model_copy(
+            update={
+                "award_version": current.award_version + 1,
+                "status": AwardStatus.DECLINED,
+                "responded_at": self.clock.now(),
+                "updated_at": self.clock.now(),
+            }
+        )
+        record = self.store.awards[award_id]
+        record["dto"] = updated
+        record["declined_by"] = respondent_name.strip()
+        record["decline_reason"] = reason.strip()
+        self.store.procurement_status[updated.procurement_request_id] = "AWARD_DECLINED"
+        context = CommandContextDTO(
+            tenant_id=self._tenant_for_request(updated.procurement_request_id),
+            idempotency_key=idempotency_key,
+            correlation_id=f"cor:{updated.procurement_request_id}",
+            actor_type=ActorType.HUMAN,
+            actor_id=respondent_name,
+        )
+        self._audit(
+            "SUPPLIER_DECLINED_AWARD",
+            "award",
+            award_id,
+            context,
+            {"reason": reason.strip()},
+            previous_state=current.status,
+            new_state=updated.status,
+            origin="supplier_response",
+        )
+        self._remember_raw_idempotency(
+            operation,
+            idempotency_key,
+            payload,
+            updated,
+        )
         return updated
 
     async def confirm_reservation(
@@ -777,6 +1084,10 @@ class ProcurementExecutionService:
         confirmed_by: str,
         idempotency_key: str,
     ) -> AwardDTO:
+        current = self._award_record(award_id)["dto"]
+        operation = (
+            f"{self._tenant_for_request(current.procurement_request_id)}:reservation.confirm"
+        )
         payload = {
             "award_id": award_id,
             "event_date": str(event_date),
@@ -784,10 +1095,9 @@ class ProcurementExecutionService:
             "people_count": people_count,
             "confirmed_by": confirmed_by,
         }
-        replay = self._raw_idempotent_replay("reservation.confirm", idempotency_key, payload)
+        replay = self._raw_idempotent_replay(operation, idempotency_key, payload)
         if replay is not None:
             return replay
-        current = self._award_record(award_id)["dto"]
         require(
             current.status == AwardStatus.ACCEPTED,
             ErrorCode.INVALID_STATE,
@@ -846,7 +1156,7 @@ class ProcurementExecutionService:
             )
             replay_result = current.model_copy(update={"idempotent_replay": True})
             self._remember_raw_idempotency(
-                "reservation.confirm", idempotency_key, payload, replay_result
+                operation, idempotency_key, payload, replay_result
             )
             return replay_result
         reservation_id = self._new_id("reservation")
@@ -872,6 +1182,9 @@ class ProcurementExecutionService:
             }
         )
         self.store.awards[award_id]["dto"] = completed
+        previous_procurement_status = self.store.procurement_status.get(
+            current.procurement_request_id
+        )
         self.store.procurement_status[current.procurement_request_id] = "READY_FOR_CONTRACTING"
         context = CommandContextDTO(
             tenant_id=self._tenant_for_request(current.procurement_request_id),
@@ -880,15 +1193,27 @@ class ProcurementExecutionService:
             actor_type=ActorType.HUMAN,
             actor_id=confirmed_by,
         )
-        self._audit("CAPACITY_RESERVED", "reservation", reservation_id, context, {})
+        self._audit(
+            "CAPACITY_RESERVED",
+            "reservation",
+            reservation_id,
+            context,
+            {},
+            previous_state=None,
+            new_state=ReservationStatus.CONFIRMED,
+            origin="supplier_response",
+        )
         self._audit(
             "PROCUREMENT_READY_FOR_CONTRACTING",
             "procurement_request",
             current.procurement_request_id,
             context,
             {"award_id": award_id, "reservation_id": reservation_id},
+            previous_state=previous_procurement_status,
+            new_state="READY_FOR_CONTRACTING",
+            origin="supplier_response",
         )
-        self._remember_raw_idempotency("reservation.confirm", idempotency_key, payload, completed)
+        self._remember_raw_idempotency(operation, idempotency_key, payload, completed)
         return completed
 
     def get_procurement_status(self, procurement_request_id: str) -> str:
@@ -897,7 +1222,12 @@ class ProcurementExecutionService:
         except KeyError as error:
             raise DomainError(ErrorCode.NOT_FOUND, "procurement request not found") from error
 
-    async def _refresh_delivery_batch(self, rfq_round_id: str) -> DeliveryBatchDTO:
+    async def _refresh_delivery_batch(
+        self,
+        rfq_round_id: str,
+        *,
+        audit_context: CommandContextDTO | None = None,
+    ) -> DeliveryBatchDTO:
         round_record = self._round(rfq_round_id)
         round_dto: RFQRoundDTO = round_record["dto"]
         deliveries: list[DeliveryDTO] = []
@@ -905,6 +1235,7 @@ class ProcurementExecutionService:
             recipient = self._recipient(recipient_id)
             external_id = recipient["external_id"]
             if external_id:
+                previous_delivery_status = str(recipient["status"])
                 provider = await self.delivery_gateway.get_status(external_id)
                 recipient["status"] = str(provider.status)
                 recipient["delivered_at"] = provider.delivered_at
@@ -917,8 +1248,12 @@ class ProcurementExecutionService:
                         "RFQ_DELIVERY_CONFIRMED",
                         "rfq_recipient",
                         recipient_id,
-                        self._system_context(round_dto.procurement_request_id),
+                        audit_context
+                        or self._system_context(round_dto.procurement_request_id),
                         {"external_id": external_id},
+                        previous_state=previous_delivery_status,
+                        new_state=DeliveryStatus.DELIVERED,
+                        origin="delivery_gateway",
                     )
                     recipient["delivery_event_emitted"] = True
             deliveries.append(
@@ -955,8 +1290,11 @@ class ProcurementExecutionService:
                 else "RFQ_DISPATCH_STARTED",
                 "rfq_round",
                 rfq_round_id,
-                self._system_context(round_dto.procurement_request_id),
+                audit_context or self._system_context(round_dto.procurement_request_id),
                 {"previous_status": previous_status, "new_status": new_status},
+                previous_state=previous_status,
+                new_state=new_status,
+                origin="delivery_gateway",
             )
         if activation:
             self.store.procurement_status[round_dto.procurement_request_id] = "RFQ_ACTIVE"
@@ -969,6 +1307,48 @@ class ProcurementExecutionService:
             activation_criteria_met=activation,
             updated_at=self.clock.now(),
         )
+
+    def _invalidate_approvals_for_quote(
+        self,
+        quote: QuoteDTO,
+        context: CommandContextDTO,
+    ) -> None:
+        invalidated = False
+        for approval_record in self.store.approvals.values():
+            approval: ApprovalDTO = approval_record["dto"]
+            if (
+                approval.selected_quote.quote_id != quote.quote_id
+                or approval.selected_quote.quote_version == quote.quote_version
+                or approval.status
+                not in {ApprovalStatus.REQUESTED, ApprovalStatus.APPROVED}
+            ):
+                continue
+            updated = approval.model_copy(
+                update={
+                    "approval_version": approval.approval_version + 1,
+                    "status": ApprovalStatus.INVALIDATED,
+                    "reason": "Quote changed after approval was requested",
+                }
+            )
+            approval_record["dto"] = updated
+            self._audit(
+                "APPROVAL_INVALIDATED",
+                "approval",
+                approval.approval_id,
+                context,
+                {
+                    "previous_quote_version": approval.selected_quote.quote_version,
+                    "current_quote_version": quote.quote_version,
+                },
+                previous_state=approval.status,
+                new_state=updated.status,
+                origin="quote_resubmission",
+            )
+            invalidated = True
+        if invalidated:
+            self.store.procurement_status[
+                self._round(quote.rfq_round_id)["dto"].procurement_request_id
+            ] = "AWAITING_COMPARISON"
 
     def _expire_quotes(self, round_record: dict[str, Any]) -> None:
         expired_count = 0
@@ -993,6 +1373,9 @@ class ProcurementExecutionService:
                     quote.quote_id,
                     self._system_context(round_record["dto"].procurement_request_id),
                     {"quote_version": quote.quote_version},
+                    previous_state=quote.status,
+                    new_state=updated.status,
+                    origin="system_clock",
                 )
                 expired_count += 1
         if expired_count:
@@ -1063,8 +1446,8 @@ class ProcurementExecutionService:
             raise DomainError(ErrorCode.INVALID_RESPONSE_TOKEN, str(error)) from error
 
     def _new_id(self, prefix: str) -> str:
-        number = self._id_counters.get(prefix, 0) + 1
-        self._id_counters[prefix] = number
+        number = self.store.id_counters.get(prefix, 0) + 1
+        self.store.id_counters[prefix] = number
         return f"{prefix}_{number:04d}"
 
     def _audit(
@@ -1074,7 +1457,12 @@ class ProcurementExecutionService:
         aggregate_id: str,
         context: CommandContextDTO,
         payload: dict[str, Any],
+        *,
+        previous_state: str | None = None,
+        new_state: str | None = None,
+        origin: str | None = None,
     ) -> None:
+        event_origin = origin or f"{context.actor_type}_action"
         self.store.audit_events.append(
             AuditEventDTO(
                 event_id=self._new_id("event"),
@@ -1083,18 +1471,27 @@ class ProcurementExecutionService:
                 aggregate_type=aggregate_type,
                 aggregate_id=aggregate_id,
                 occurred_at=self.clock.now(),
+                previous_state=previous_state,
+                new_state=new_state,
                 correlation_id=context.correlation_id,
                 causation_id=context.causation_id,
                 actor_type=context.actor_type,
                 actor_id=context.actor_id,
-                payload=payload,
+                origin=event_origin,
+                agent_run_id=context.agent_run_id,
+                idempotency_key=context.idempotency_key,
+                payload=deepcopy(payload),
             )
         )
 
     def _idempotent_replay(
         self, operation: str, context: CommandContextDTO, payload: Any
     ) -> Any | None:
-        return self._raw_idempotent_replay(operation, context.idempotency_key, payload)
+        return self._raw_idempotent_replay(
+            f"{context.tenant_id}:{operation}",
+            context.idempotency_key,
+            payload,
+        )
 
     def _raw_idempotent_replay(
         self, operation: str, idempotency_key: str, payload: Any
@@ -1119,7 +1516,12 @@ class ProcurementExecutionService:
         payload: Any,
         result: Any,
     ) -> None:
-        self._remember_raw_idempotency(operation, context.idempotency_key, payload, result)
+        self._remember_raw_idempotency(
+            f"{context.tenant_id}:{operation}",
+            context.idempotency_key,
+            payload,
+            result,
+        )
 
     def _remember_raw_idempotency(
         self,

@@ -13,7 +13,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol
 
 
 class DeliveryState(StrEnum):
@@ -25,7 +25,7 @@ class DeliveryState(StrEnum):
 
 
 class GatewayError(RuntimeError):
-    """Base class for deterministic fake-gateway failures."""
+    """Base class for delivery-gateway failures."""
 
 
 class GatewayIdempotencyConflict(GatewayError):
@@ -100,6 +100,12 @@ class GatewayDeliveryStatus:
     delivered_at: datetime | None = None
     failed_at: datetime | None = None
     failure_reason: str | None = None
+
+
+class DeliveryGateway(Protocol):
+    async def send(self, message: OutboundMessage) -> GatewaySendResult: ...
+
+    async def get_status(self, external_id: str) -> GatewayDeliveryStatus: ...
 
 
 class FakeDeliveryGateway:

@@ -14,9 +14,9 @@ from app.modules.rfq.contracts import (
     CommandContextDTO,
     CreateRFQRoundCommand,
     ExecutionPolicySnapshotDTO,
+    RFQExecutionPort,
     RFQRequirementsSnapshotDTO,
 )
-from app.modules.rfq.service import ProcurementExecutionService
 from app.shared.errors import DomainError, ErrorCode
 
 
@@ -25,7 +25,7 @@ class Dev3RFQExecutionAdapter:
 
     def __init__(
         self,
-        service: ProcurementExecutionService,
+        service: RFQExecutionPort,
         *,
         default_timezone: str = "America/Sao_Paulo",
     ) -> None:
@@ -151,6 +151,7 @@ class Dev3RFQExecutionAdapter:
                 "minimum_confirmed_deliveries",
                 1,
             ),
+            minimum_valid_quotes=raw.get("minimum_valid_quotes", 2),
             maximum_follow_ups=raw.get("maximum_follow_ups", 0),
             maximum_total_cents=requirements.get("maximum_total_cents"),
             target_total_cents=raw.get("target_total_cents"),
