@@ -1,0 +1,105 @@
+{
+  "name": "supplier-extraction-synthetic-contract-v1",
+  "classification": "synthetic_test_only",
+  "authorized_for_real_demo": false,
+  "disclaimer": "Synthetic contract data only. It is not evidence of product accuracy and is not authorized for a real demo.",
+  "cases": [
+    {
+      "case_id": "synthetic_xlsx_exact",
+      "expected_fields": {
+        "base_price_cents": {"status": "extracted", "normalized_value": 4250},
+        "minimum_people": {"status": "extracted", "normalized_value": 30},
+        "invoice_available": {"status": "not_found", "normalized_value": null}
+      },
+      "predicted_fields": [
+        {
+          "field_name": "base_price_cents",
+          "value": "R$ 42,50",
+          "normalized_value": 4250,
+          "status": "extracted",
+          "confidence": 1.0,
+          "source_sheet": "Perfil",
+          "source_cell_range": "B3"
+        },
+        {
+          "field_name": "minimum_people",
+          "value": "30 pessoas",
+          "normalized_value": 30,
+          "status": "extracted",
+          "confidence": 1.0,
+          "source_sheet": "Perfil",
+          "source_cell_range": "B4"
+        },
+        {
+          "field_name": "invoice_available",
+          "value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "confidence": null
+        }
+      ]
+    },
+    {
+      "case_id": "synthetic_wrong_quantity_and_hallucination",
+      "expected_fields": {
+        "base_price_cents": {"status": "extracted", "normalized_value": 5000},
+        "minimum_people": {"status": "extracted", "normalized_value": 50},
+        "cross_contamination_warning": {"status": "not_found", "normalized_value": null}
+      },
+      "predicted_fields": [
+        {
+          "field_name": "base_price_cents",
+          "value": "R$ 50,00",
+          "normalized_value": 5000,
+          "status": "extracted",
+          "confidence": 0.95,
+          "source_page": 1,
+          "source_excerpt": "Pacote individual R$ 50,00"
+        },
+        {
+          "field_name": "minimum_people",
+          "value": "45 pessoas",
+          "normalized_value": 45,
+          "status": "extracted",
+          "confidence": 0.9,
+          "source_page": 1,
+          "source_excerpt": "Atendimento para 45 pessoas"
+        },
+        {
+          "field_name": "cross_contamination_warning",
+          "value": false,
+          "normalized_value": false,
+          "status": "extracted",
+          "confidence": 0.7,
+          "source_page": 1,
+          "source_excerpt": "Campo ausente no material sintético"
+        }
+      ]
+    },
+    {
+      "case_id": "synthetic_invalid_confirmation_claim",
+      "expected_fields": {
+        "minimum_people": {"status": "extracted", "normalized_value": 30},
+        "invoice_available": {"status": "extracted", "normalized_value": true}
+      },
+      "predicted_fields": [
+        {
+          "field_name": "minimum_people",
+          "value": 30,
+          "normalized_value": 30,
+          "status": "extracted",
+          "confidence": 0.9,
+          "source_page": 1
+        },
+        {
+          "field_name": "invoice_available",
+          "value": true,
+          "normalized_value": true,
+          "status": "confirmed",
+          "confidence": 0.99,
+          "source_page": 1
+        }
+      ]
+    }
+  ]
+}

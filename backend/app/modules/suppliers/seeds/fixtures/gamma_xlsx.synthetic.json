@@ -1,0 +1,26 @@
+{
+  "classification": "synthetic_test_only",
+  "authorized_for_real_demo": false,
+  "disclaimer": "NOT AUTHORIZED FOR A REAL DEMO. Synthetic automated-test fixture with no real supplier.",
+  "supplier_id": "sup_synthetic_gamma_xlsx",
+  "input_format": "xlsx",
+  "material_reference": "synthetic-test://gamma/profile.xlsx",
+  "profile": {
+    "trade_name": "Synthetic Gamma Kitchen",
+    "categories": ["meal_kits"],
+    "service_cities": ["São Paulo"],
+    "contact_email": "gamma.synthetic@example.test",
+    "cnpj": null
+  },
+  "extraction_fixture": {
+    "invoice_available": {
+      "value": "sim",
+      "normalized_value": true,
+      "status": "extracted",
+      "confidence": 1.0,
+      "source_sheet": "Perfil",
+      "source_cell_range": "B7",
+      "source_excerpt": "Spreadsheet source: Perfil!B7"
+    }
+  }
+}
