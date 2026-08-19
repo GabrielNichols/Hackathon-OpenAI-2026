@@ -10,7 +10,6 @@ from app.modules.suppliers.search.models import (
     SupplierSearchCriteria,
 )
 
-
 CONFIRMED_AT = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 
 
