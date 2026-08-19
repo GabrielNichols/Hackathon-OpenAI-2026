@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Protótipo do fluxo comprador do Canal Agente" />
-    <title>Canal Agente · Procurement</title>
+    <title>Canal Agente · Compras corporativas</title>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body>
@@ -18,7 +18,7 @@
 
     <main class="page-shell">
       <section class="intro">
-        <p class="eyebrow">Procurement assistido</p>
+        <p class="eyebrow">Compras corporativas</p>
         <h1>Conte o que precisa comprar.<br />O agente organiza o processo.</h1>
         <p class="intro-copy">
           Esta primeira fatia interpreta a demanda, pede somente o que bloqueia, propõe um
@@ -26,18 +26,18 @@
         </p>
       </section>
 
-      <section class="workspace" aria-label="Workspace de procurement">
+      <section class="workspace" aria-label="Jornada de compras">
         <aside class="workflow-card">
           <p class="section-label">Etapas reais</p>
           <ol class="workflow-list" id="workflow-list">
             <li data-step="request"><span>1</span><div><strong>Briefing</strong><small>Estruturar necessidade</small></div></li>
             <li data-step="plan"><span>2</span><div><strong>Plano</strong><small>Revisão humana</small></div></li>
             <li data-step="sourcing"><span>3</span><div><strong>Sourcing</strong><small>Elegibilidade explicável</small></div></li>
-            <li data-step="rfq"><span>4</span><div><strong>RFQ</strong><small>Handoff em draft</small></div></li>
+            <li data-step="rfq"><span>4</span><div><strong>Cotação</strong><small>Convites prontos para envio</small></div></li>
           </ol>
           <div class="truth-note">
-            <strong>Sem encenação</strong>
-            <p>Um draft não é exibido como enviado. Disponibilidade e preço final ainda precisam da resposta do fornecedor.</p>
+            <strong>Informações verificadas</strong>
+            <p>Preço e disponibilidade só são confirmados depois da resposta de cada fornecedor.</p>
           </div>
         </aside>
 
@@ -45,13 +45,13 @@
           <section class="panel conversation-panel">
             <div class="panel-heading">
               <div><p class="section-label">Nova requisição</p><h2>Descreva a necessidade</h2></div>
-              <span class="status-pill" id="status-pill">Aguardando briefing</span>
+              <span class="status-pill" id="status-pill">Pronto para receber o pedido</span>
             </div>
             <form id="message-form">
               <label class="sr-only" for="message">Mensagem para o agente</label>
-              <textarea id="message" rows="6">Preciso de um coffee break para 80 pessoas em 21/08/2026, entregue às 8h30 na Vila Olímpia, São Paulo. Serão 12 vegetarianos, 4 veganos e 3 sem glúten. Orçamento máximo de R$ 4.500, com nota fiscal obrigatória e sem plásticos descartáveis. Quero 3 cotações, respostas até 20/08/2026 às 18h. Aprovador: approver_demo.</textarea>
+              <textarea id="message" rows="6">Preciso de um coffee break para 80 pessoas em 21/08/2026, entregue às 8h30 na Vila Olímpia, São Paulo. Serão 12 vegetarianos, 4 veganos e 3 sem glúten. Orçamento máximo de R$ 4.500, com nota fiscal obrigatória e sem plásticos descartáveis. Quero 3 cotações, com respostas até 20/08/2026 às 18h. Responsável pela aprovação: Compras.</textarea>
               <div class="composer-footer">
-                <p id="request-reference">Nenhuma requisição criada</p>
+                <p id="request-reference">Pronto para começar</p>
                 <button class="primary-button" id="send-button" type="submit">Interpretar briefing <span>→</span></button>
               </div>
             </form>
@@ -60,7 +60,7 @@
 
           <div class="content-grid">
             <section class="panel" id="summary-panel" hidden>
-              <div class="panel-heading compact"><div><p class="section-label">Schema versionado</p><h2>Resumo entendido</h2></div></div>
+              <div class="panel-heading compact"><div><p class="section-label">Pedido estruturado</p><h2>Resumo do pedido</h2></div></div>
               <dl class="summary-grid" id="summary-grid"></dl>
               <div class="evidence-block"><p class="section-label">Evidências do texto</p><ul id="evidence-list"></ul></div>
             </section>
@@ -82,7 +82,7 @@
           </section>
 
           <section class="panel" id="timeline-panel" hidden>
-            <div class="panel-heading compact"><div><p class="section-label">Audit log</p><h2>Timeline de ações</h2></div></div>
+            <div class="panel-heading compact"><div><p class="section-label">Acompanhamento</p><h2>Histórico da solicitação</h2></div></div>
             <ol class="timeline" id="timeline"></ol>
           </section>
         </div>
