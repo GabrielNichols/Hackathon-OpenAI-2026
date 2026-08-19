@@ -83,9 +83,7 @@ class InMemorySupplierDirectory:
             return False
         mandatory_tags = {tag.casefold() for tag in criteria.mandatory_tags}
         available_tags = {tag.casefold() for tag in record.sustainability_tags}
-        if mandatory_tags - available_tags:
-            return False
-        return True
+        return not mandatory_tags - available_tags
 
     @classmethod
     def _candidate(cls, record: SupplierDirectoryRecord) -> SupplierCandidateDTO:

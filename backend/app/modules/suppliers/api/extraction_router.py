@@ -49,7 +49,7 @@ def create_extraction_router(
     async def process_extraction(
         supplier_id: str,
         payload: ExtractionRequest | None = None,
-        tenant_id: str = Depends(resolve_tenant),  # noqa: B008
+        tenant_id: str = Depends(resolve_tenant),
     ) -> ExtractionExecutionDTO | JSONResponse:
         try:
             return await service.process_next(
@@ -67,7 +67,7 @@ def create_extraction_router(
     async def extraction_status(
         supplier_id: str,
         document_id: str,
-        tenant_id: str = Depends(resolve_tenant),  # noqa: B008
+        tenant_id: str = Depends(resolve_tenant),
     ) -> ExtractionExecutionDTO | JSONResponse:
         try:
             return await service.get_status(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Protocol, Self
+from typing import Any, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -53,9 +53,10 @@ class FieldReviewRevision(BaseModel):
             raise ValueError("extracted revision cannot contain a human decision")
         if self.decision is not None and (self.decided_by is None or self.decided_at is None):
             raise ValueError("human review decision requires actor and timestamp")
-        if self.decision is FieldReviewDecision.NOT_APPLICABLE:
-            if self.value is not None or self.normalized_value is not None:
-                raise ValueError("not_applicable is a separate decision without a field value")
+        if self.decision is FieldReviewDecision.NOT_APPLICABLE and (
+            self.value is not None or self.normalized_value is not None
+        ):
+            raise ValueError("not_applicable is a separate decision without a field value")
         return self
 
     @classmethod
@@ -536,7 +537,7 @@ class SupplierReviewService:
         *,
         event_type: str,
         session: SupplierReviewSession,
-        actor_type: str,
+        actor_type: Literal["supplier", "system"],
         actor_id: str | None,
         correlation_id: str,
         payload: dict[str, Any],

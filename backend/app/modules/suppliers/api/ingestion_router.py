@@ -117,7 +117,7 @@ def create_ingestion_router(
     async def upload_material(
         supplier_id: str,
         request: Request,
-        tenant_id: str = Depends(resolve_tenant),  # noqa: B008
+        tenant_id: str = Depends(resolve_tenant),
     ) -> MaterialUploadResponse | JSONResponse:
         content_type = request.headers.get("content-type", "").casefold()
         try:
@@ -182,7 +182,7 @@ def create_ingestion_router(
     async def download_material(
         supplier_id: str,
         document_id: str,
-        tenant_id: str = Depends(resolve_tenant),  # noqa: B008
+        tenant_id: str = Depends(resolve_tenant),
     ) -> Response:
         try:
             document, content = await service.get_material(
