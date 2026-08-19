@@ -38,8 +38,11 @@ def create_app(container: DemoContainer | None = None) -> FastAPI:
 
     app.include_router(buyer_requests_router)
 
-    frontend = Path(__file__).resolve().parents[2] / "frontend"
+    project_root = Path(__file__).resolve().parents[2]
+    frontend = project_root / "frontend"
+    brand_assets = project_root / "web" / "public" / "assets"
     app.mount("/assets", StaticFiles(directory=frontend), name="assets")
+    app.mount("/brand-assets", StaticFiles(directory=brand_assets), name="brand-assets")
 
     @app.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
