@@ -46,7 +46,8 @@ _MANUAL_CHANNELS = {"email", "whatsapp"}
 _SECURITY_HEADERS = {
     "Cache-Control": "no-store, max-age=0",
     "Content-Security-Policy": (
-        "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+        "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; "
+        "style-src 'unsafe-inline'"
     ),
     "Cross-Origin-Opener-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -1188,12 +1189,53 @@ def _receipt_page(title: str, receipt: ActionReceipt) -> str:
 
 
 def _document(title: str, body: str) -> str:
+    styles = """
+      :root{--ink:#17221e;--muted:#66716c;--paper:#f4f2ea;--panel:#fffef9;
+        --line:#dcdad0;--green:#186449;--green-soft:#e2f0e8;--red:#a13f38;
+        font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        color:var(--ink);background:var(--paper)}
+      *{box-sizing:border-box}body{margin:0;min-height:100vh;background:
+        radial-gradient(circle at 80% 0%,#e3eee6 0,transparent 31rem),var(--paper)}
+      .topbar{height:72px;padding:0 max(24px,calc((100vw - 1100px)/2));display:flex;
+        align-items:center;justify-content:space-between;border-bottom:1px solid rgb(23 34 30/12%)}
+      .brand{display:flex;align-items:center;gap:11px;font-weight:750}.brand-mark{display:grid;
+        place-items:center;width:34px;height:34px;border-radius:10px;color:#fff;background:var(--ink);
+        font-size:12px}.environment{display:flex;align-items:center;gap:8px;color:var(--muted);
+        font-size:13px}.environment::before{content:"";width:8px;height:8px;border-radius:50%;
+        background:#31a372;box-shadow:0 0 0 4px rgb(49 163 114/13%)}
+      .page-shell{width:min(1100px,calc(100% - 32px));margin:0 auto;padding:48px 0 80px}
+      main>*{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+        box-shadow:0 18px 55px rgb(37 49 43/8%);padding:24px;margin:0 0 18px}
+      h1,h2,h3{letter-spacing:-.025em}h1{margin:0 0 20px;font-family:Georgia,"Times New Roman",serif;
+        font-size:clamp(32px,5vw,52px);font-weight:500;line-height:1.02}h2{margin-top:28px}
+      p,li,dd,td,th,label{line-height:1.55}p{color:var(--muted)}a{color:var(--green);
+        font-weight:700;text-underline-offset:3px}table{width:100%;border-collapse:collapse;overflow:hidden}
+      th,td{padding:12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+      th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+      dl{display:grid;grid-template-columns:minmax(150px,.5fr) 1fr;gap:0;margin:0}
+      dt,dd{margin:0;padding:10px 0;border-bottom:1px solid var(--line)}dt{color:var(--muted)}
+      dd{font-weight:700}form{display:grid;gap:14px}label{display:grid;gap:6px;font-weight:700}
+      input,textarea,select{width:100%;min-height:44px;padding:10px 12px;border:1px solid #8d978f;
+        border-radius:10px;background:#fbfaf5;color:var(--ink);font:inherit}textarea{min-height:110px;resize:vertical}
+      button{min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:var(--ink);
+        color:#fff;font:inherit;font-weight:750;cursor:pointer}button:hover{background:var(--green)}
+      button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{
+        outline:3px solid rgb(24 100 73/24%);outline-offset:2px}ol,ul{padding-left:22px}
+      code{overflow-wrap:anywhere}.status{display:inline-flex;padding:6px 10px;border-radius:999px;
+        color:var(--green);background:var(--green-soft);font-size:12px;font-weight:800}
+      @media(max-width:700px){.topbar{height:64px;padding:0 16px}.environment{font-size:11px}
+        .page-shell{padding-top:24px}main>*{padding:18px;overflow-x:auto}dl{grid-template-columns:1fr}
+        dt{border-bottom:0;padding-bottom:0}h1{font-size:34px}}
+    """
     return (
         '<!doctype html><html lang="pt-BR"><head>'
         '<meta charset="utf-8"><meta name="viewport" '
         'content="width=device-width,initial-scale=1">'
         '<meta name="referrer" content="no-referrer">'
-        f"<title>{_escape(title)}</title></head><body><main>{body}</main></body></html>"
+        f"<title>{_escape(title)}</title><style>{styles}</style></head>"
+        '<body><header class="topbar"><div class="brand"><span class="brand-mark">CA</span>'
+        '<span>Canal Agente</span></div><div class="environment">Execução verificável</div></header>'
+        f'<main class="page-shell"><section>{body}</section></main></body></html>'
     )
 
 

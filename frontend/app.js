@@ -208,7 +208,8 @@ function updateWorkflow(view) {
 function render(view) {
   state.view = view;
   state.requestId = view.request_id;
-  byId("request-reference").textContent = `${view.request_id} · ${view.mode || "demo_fake"}`;
+  const modeLabel = view.mode === "real" ? "execução real" : "demonstração local";
+  byId("request-reference").textContent = `${view.request_id} · ${modeLabel}`;
   byId("status-pill").textContent = `${view.status} · ${view.stop_reason || "em execução"}`;
   renderAnswer(view);
   renderSummary(view);
