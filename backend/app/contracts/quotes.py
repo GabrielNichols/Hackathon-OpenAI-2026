@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import Field, model_validator
-from typing_extensions import Self
 
 from .common import (
     ActorType,

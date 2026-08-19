@@ -59,9 +59,7 @@ async def test_policy_blocks_changing_mandatory_requirement() -> None:
 
 @pytest.mark.asyncio
 async def test_policy_blocks_cross_tenant_access() -> None:
-    decision = await DeterministicPolicyEngine().authorize(
-        request(resource_tenant_id="org_other")
-    )
+    decision = await DeterministicPolicyEngine().authorize(request(resource_tenant_id="org_other"))
     assert decision.reason_code == "CROSS_TENANT_ACCESS"
 
 
@@ -70,9 +68,7 @@ async def test_policy_requires_fields_before_sourcing() -> None:
     decision = await DeterministicPolicyEngine().authorize(
         request(
             arguments={"present_fields": ["category"]},
-            procurement_policy={
-                "required_fields_before_sourcing": ["category", "event_date"]
-            },
+            procurement_policy={"required_fields_before_sourcing": ["category", "event_date"]},
         )
     )
     assert decision.reason_code == "MISSING_REQUIRED_FIELDS"

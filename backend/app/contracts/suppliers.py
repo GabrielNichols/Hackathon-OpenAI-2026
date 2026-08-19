@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, time
+from typing import Self
 
 from pydantic import Field, model_validator
-from typing_extensions import Self
 
 from .common import (
     ContractModel,

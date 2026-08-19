@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any, TypeAlias
+from typing import Annotated, Any
 
 from pydantic import (
     AfterValidator,
@@ -29,11 +29,11 @@ def _normalize_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-ContractString: TypeAlias = Annotated[
+type ContractString = Annotated[
     str,
     StringConstraints(min_length=1, max_length=512),
 ]
-EntityId: TypeAlias = Annotated[
+type EntityId = Annotated[
     str,
     StringConstraints(
         min_length=3,
@@ -41,36 +41,36 @@ EntityId: TypeAlias = Annotated[
         pattern=r"^[a-z][a-z0-9]*_[A-Za-z0-9][A-Za-z0-9_-]*$",
     ),
 ]
-SupplierId: TypeAlias = Annotated[
+type SupplierId = Annotated[
     str,
     StringConstraints(pattern=r"^sup_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-ProcurementRequestId: TypeAlias = Annotated[
+type ProcurementRequestId = Annotated[
     str,
     StringConstraints(pattern=r"^pr_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-RFQId: TypeAlias = Annotated[
+type RFQId = Annotated[
     str,
     StringConstraints(pattern=r"^rfq_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-QuoteId: TypeAlias = Annotated[
+type QuoteId = Annotated[
     str,
     StringConstraints(pattern=r"^quo_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-ApprovalId: TypeAlias = Annotated[
+type ApprovalId = Annotated[
     str,
     StringConstraints(pattern=r"^apr_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-AwardId: TypeAlias = Annotated[
+type AwardId = Annotated[
     str,
     StringConstraints(pattern=r"^awd_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-MoneyCents: TypeAlias = Annotated[int, Field(strict=True, ge=0)]
-Version: TypeAlias = Annotated[int, Field(strict=True, ge=0)]
-NonNegativeCount: TypeAlias = Annotated[int, Field(strict=True, ge=0)]
-PositiveCount: TypeAlias = Annotated[int, Field(strict=True, gt=0)]
-ScorePoints: TypeAlias = Annotated[int, Field(strict=True, ge=0, le=100)]
-IdempotencyKey: TypeAlias = Annotated[
+type MoneyCents = Annotated[int, Field(strict=True, ge=0)]
+type Version = Annotated[int, Field(strict=True, ge=0)]
+type NonNegativeCount = Annotated[int, Field(strict=True, ge=0)]
+type PositiveCount = Annotated[int, Field(strict=True, gt=0)]
+type ScorePoints = Annotated[int, Field(strict=True, ge=0, le=100)]
+type IdempotencyKey = Annotated[
     str,
     StringConstraints(
         min_length=1,
@@ -78,21 +78,21 @@ IdempotencyKey: TypeAlias = Annotated[
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
     ),
 ]
-CorrelationId: TypeAlias = Annotated[
+type CorrelationId = Annotated[
     str,
     StringConstraints(pattern=r"^cor_[A-Za-z0-9][A-Za-z0-9_-]*$"),
 ]
-EventType: TypeAlias = Annotated[
+type EventType = Annotated[
     str,
     StringConstraints(pattern=r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$"),
 ]
-StableCode: TypeAlias = EventType
-ActionName: TypeAlias = Annotated[
+type StableCode = EventType
+type ActionName = Annotated[
     str,
     StringConstraints(pattern=r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"),
 ]
-AggregateType: TypeAlias = ActionName
-UtcDateTime: TypeAlias = Annotated[AwareDatetime, AfterValidator(_normalize_utc)]
+type AggregateType = ActionName
+type UtcDateTime = Annotated[AwareDatetime, AfterValidator(_normalize_utc)]
 
 
 class ContractModel(BaseModel):

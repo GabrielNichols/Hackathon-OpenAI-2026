@@ -16,12 +16,11 @@ from app.contracts import (
     DeliveryDTO,
     QuoteComparisonDTO,
     QuoteComparisonEntryDTO,
-    RFQDeliveryStatus,
     RequestApprovalCommand,
+    RFQDeliveryStatus,
     SendAwardCommand,
     SendRFQRoundCommand,
 )
-
 
 FIXED_NOW = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
 

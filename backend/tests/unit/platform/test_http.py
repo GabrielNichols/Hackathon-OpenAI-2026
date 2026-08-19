@@ -25,9 +25,7 @@ def test_core_health_exports_contract_version() -> None:
 
 
 def test_core_error_handler_uses_stable_envelope() -> None:
-    response = TestClient(app_for_test()).get(
-        "/failure", headers={"x-correlation-id": "cor_test"}
-    )
+    response = TestClient(app_for_test()).get("/failure", headers={"x-correlation-id": "cor_test"})
     assert response.status_code == 403
     assert response.json() == {
         "error": {
