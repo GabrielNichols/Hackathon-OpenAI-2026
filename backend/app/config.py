@@ -21,7 +21,7 @@ class ApplicationConfigurationError(RuntimeError):
 def load_interpreter_provider(value: str | None = None) -> InterpreterProvider:
     raw = value
     if raw is None:
-        raw = os.getenv("PROCUREMENT_INTERPRETER", "local")
+        raw = os.getenv("PROCUREMENT_INTERPRETER", "openai")
     normalized = raw.strip().casefold()
     if normalized not in {"local", "auto", "openai"}:
         raise ApplicationConfigurationError("INVALID_PROCUREMENT_INTERPRETER")
