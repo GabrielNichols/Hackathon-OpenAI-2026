@@ -275,10 +275,7 @@ def create_live_router(
                         "Confirme que você deseja abrir esta solicitação. "
                         "Essa ação registrará o recebimento pelo fornecedor."
                     ),
-                    action_path=(
-                        "/live/supplier/rfq/"
-                        f"{quote(capability_token, safe='')}/open"
-                    ),
+                    action_path=(f"/live/supplier/rfq/{quote(capability_token, safe='')}/open"),
                     csrf_proof=csrf_proof,
                     idempotency_key=idempotency_key,
                 )
@@ -311,9 +308,7 @@ def create_live_router(
             idempotency_key=idempotency_key,
             evidence=_evidence(request),
         )
-        return _secure_redirect(
-            f"/live/supplier/rfq/{quote(capability_token, safe='')}"
-        )
+        return _secure_redirect(f"/live/supplier/rfq/{quote(capability_token, safe='')}")
 
     @router.post("/supplier/rfq/{capability_token}", response_class=HTMLResponse)
     async def submit_quote(capability_token: str, request: Request) -> HTMLResponse:
@@ -414,10 +409,7 @@ def create_live_router(
                         "Confirme que você deseja abrir este award. "
                         "A abertura não o aceita e não confirma a reserva."
                     ),
-                    action_path=(
-                        "/live/supplier/awards/"
-                        f"{quote(capability_token, safe='')}/open"
-                    ),
+                    action_path=(f"/live/supplier/awards/{quote(capability_token, safe='')}/open"),
                     csrf_proof=csrf_proof,
                     idempotency_key=idempotency_key,
                 )
@@ -432,9 +424,7 @@ def create_live_router(
             )
         )
         reservation_csrf = csrf.issue(
-            _supplier_action_context(
-                "reservation", capability_token, reservation_idempotency
-            )
+            _supplier_action_context("reservation", capability_token, reservation_idempotency)
         )
         return _secure_html(
             _award_page(
@@ -472,9 +462,7 @@ def create_live_router(
             idempotency_key=idempotency_key,
             evidence=_evidence(request),
         )
-        return _secure_redirect(
-            f"/live/supplier/awards/{quote(capability_token, safe='')}"
-        )
+        return _secure_redirect(f"/live/supplier/awards/{quote(capability_token, safe='')}")
 
     @router.post("/supplier/awards/{capability_token}", response_class=HTMLResponse)
     async def act_on_award(capability_token: str, request: Request) -> HTMLResponse:
@@ -547,7 +535,7 @@ def create_live_router(
 def _operator_deliveries_page(deliveries: tuple[ManualDeliverySummary, ...]) -> str:
     rows = "".join(
         "<tr>"
-        f"<td><a href=\"/live/operator/deliveries/{quote(item.external_id, safe='')}\">"
+        f'<td><a href="/live/operator/deliveries/{quote(item.external_id, safe="")}">'
         f"{_escape(item.external_id)}</a></td>"
         f"<td>{_escape(item.kind)}</td>"
         f"<td>{_escape(item.supplier_name)}</td>"
@@ -579,9 +567,7 @@ def _execution_evidence_page(page: ExecutionEvidencePage) -> str:
     if not timeline:
         timeline = "<li>Nenhuma evidência registrada.</li>"
     comparisons = "".join(
-        "<li>"
-        f'<a href="/live/operator/comparisons/{quote(item, safe="")}">'
-        f"{_escape(item)}</a></li>"
+        f'<li><a href="/live/operator/comparisons/{quote(item, safe="")}">{_escape(item)}</a></li>'
         for item in page.comparison_ids
     )
     if not comparisons:
@@ -618,9 +604,7 @@ def _comparison_page(page: ComparisonPage) -> str:
         for key, value in page.requirements.items()
     )
     weights = "".join(
-        "<tr>"
-        f"<td>{_escape(criterion)}</td><td>{weight}%</td>"
-        "</tr>"
+        f"<tr><td>{_escape(criterion)}</td><td>{weight}%</td></tr>"
         for criterion, weight in page.ranking_weights.items()
     )
     if not weights:
@@ -684,9 +668,7 @@ def _comparison_page(page: ComparisonPage) -> str:
         candidates = '<tr><td colspan="16">Nenhuma proposta comparada.</td></tr>'
     recommendation = "Nenhuma"
     if page.recommended_quote_id and page.recommended_quote_version:
-        recommendation = (
-            f"{page.recommended_quote_id} v{page.recommended_quote_version}"
-        )
+        recommendation = f"{page.recommended_quote_id} v{page.recommended_quote_version}"
     return _document(
         "Comparação determinística",
         f"""
@@ -713,7 +695,7 @@ def _comparison_page(page: ComparisonPage) -> str:
           <th>Desqualificações</th><th>Riscos</th><th>Evidências</th>
         </tr></thead><tbody>{candidates}</tbody></table>
         <h2>Componentes do score</h2>
-        {''.join(component_sections)}""",
+        {"".join(component_sections)}""",
     )
 
 
@@ -841,9 +823,7 @@ def _rfq_page(page: SupplierRFQPage, csrf_proof: str, idempotency_key: str) -> s
     )
     clarification = ""
     if page.clarification_messages:
-        items = "".join(
-            f"<li>{_escape(message)}</li>" for message in page.clarification_messages
-        )
+        items = "".join(f"<li>{_escape(message)}</li>" for message in page.clarification_messages)
         clarification = (
             "<section><h2>Esclarecimento solicitado</h2>"
             f"<ul>{items}</ul><p>Envie uma nova versão da proposta abaixo.</p></section>"
@@ -866,19 +846,23 @@ def _rfq_page(page: SupplierRFQPage, csrf_proof: str, idempotency_key: str) -> s
             {_textarea("included_items", "Itens incluídos, um por linha", required=True)}
             {_textarea("substitutions", "Substituições, uma por linha")}
             {_boolean_select("invoice_available", "Emite nota fiscal")}
-            {_boolean_select(
+            {
+            _boolean_select(
                 "no_single_use_plastic_confirmed",
                 "Confirma operação sem plástico de uso único",
-            )}
+            )
+        }
             {_dietary_select("vegetarian_status", "Opções vegetarianas")}
             {_dietary_select("vegan_status", "Opções veganas")}
             {_dietary_select("gluten_free_status", "Opções sem glúten")}
             {_textarea("cross_contamination_warning", "Aviso de contaminação cruzada")}
-            {_text_input(
+            {
+            _text_input(
                 "valid_until",
                 "Validade ISO com fuso",
                 placeholder="2026-08-22T18:00:00-03:00",
-            )}
+            )
+        }
             {_textarea("cancellation_terms", "Termos de cancelamento", required=True)}
           </fieldset>
           <fieldset><legend>Responsável</legend>
@@ -938,9 +922,7 @@ def _award_page(
 ) -> str:
     terms = page.terms_snapshot
     included_items = "".join(f"<li>{_escape(item)}</li>" for item in terms.included_items)
-    substitutions = "".join(
-        f"<li>{_escape(item)}</li>" for item in terms.substitutions
-    )
+    substitutions = "".join(f"<li>{_escape(item)}</li>" for item in terms.substitutions)
     if not substitutions:
         substitutions = "<li>Nenhuma substituição.</li>"
     frozen_terms = f"""
@@ -1034,9 +1016,7 @@ def _quote_submission(form: Mapping[str, str]) -> QuoteFormSubmission:
         vegetarian_status=_dietary(form, "vegetarian_status"),
         vegan_status=_dietary(form, "vegan_status"),
         gluten_free_status=_dietary(form, "gluten_free_status"),
-        cross_contamination_warning=_optional(
-            form, "cross_contamination_warning", maximum=2_000
-        ),
+        cross_contamination_warning=_optional(form, "cross_contamination_warning", maximum=2_000),
         valid_until=valid_until,
         cancellation_terms=_required(form, "cancellation_terms", maximum=2_000),
         respondent_name=_required(form, "respondent_name", maximum=200),
@@ -1118,10 +1098,7 @@ def _award_response_action_context(
     idempotency_key: str,
     terms_snapshot_hash: str,
 ) -> str:
-    return (
-        "award-response:"
-        f"{capability_fingerprint(token)}:{terms_snapshot_hash}:{idempotency_key}"
-    )
+    return f"award-response:{capability_fingerprint(token)}:{terms_snapshot_hash}:{idempotency_key}"
 
 
 def _approval_action_context(
@@ -1212,10 +1189,10 @@ def _receipt_page(title: str, receipt: ActionReceipt) -> str:
 
 def _document(title: str, body: str) -> str:
     return (
-        "<!doctype html><html lang=\"pt-BR\"><head>"
-        "<meta charset=\"utf-8\"><meta name=\"viewport\" "
-        "content=\"width=device-width,initial-scale=1\">"
-        "<meta name=\"referrer\" content=\"no-referrer\">"
+        '<!doctype html><html lang="pt-BR"><head>'
+        '<meta charset="utf-8"><meta name="viewport" '
+        'content="width=device-width,initial-scale=1">'
+        '<meta name="referrer" content="no-referrer">'
         f"<title>{_escape(title)}</title></head><body><main>{body}</main></body></html>"
     )
 

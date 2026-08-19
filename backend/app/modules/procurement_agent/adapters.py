@@ -96,9 +96,7 @@ class IdempotencyConflictError(RuntimeError):
 class InMemoryRFQExecutionAdapter:
     """Creates RFQ drafts only. It does not claim delivery or mutate RFQ_ACTIVE."""
 
-    def __init__(
-        self, *, clock: Clock, ids: UUIDIdGenerator | SequentialIdGenerator
-    ) -> None:
+    def __init__(self, *, clock: Clock, ids: UUIDIdGenerator | SequentialIdGenerator) -> None:
         self._clock = clock
         self._ids = ids
         self._by_key: dict[str, tuple[str, RFQRoundDTO]] = {}

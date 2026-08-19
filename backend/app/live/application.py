@@ -301,9 +301,7 @@ class DurableLiveProcurementFacade:
                     vegan_status=submission.vegan_status,
                     gluten_free_status=submission.gluten_free_status,
                     cross_contamination_warning=submission.cross_contamination_warning,
-                    no_single_use_plastic_confirmed=(
-                        submission.no_single_use_plastic_confirmed
-                    ),
+                    no_single_use_plastic_confirmed=(submission.no_single_use_plastic_confirmed),
                     valid_until=submission.valid_until,
                     cancellation_terms=submission.cancellation_terms,
                     respondent_name=submission.respondent_name,
@@ -612,9 +610,7 @@ class DurableLiveProcurementFacade:
                 kind=record.message_type,
                 supplier_name=self._supplier_name(record.supplier_id),
                 delivery_status=str(record.status),
-                procurement_request_id=_procurement_request_for_record(
-                    _store(uow), record
-                ),
+                procurement_request_id=_procurement_request_for_record(_store(uow), record),
                 created_at=record.accepted_at,
                 opened_at=record.delivered_at,
                 last_send_channel=last_send.channel if last_send else None,
@@ -688,9 +684,7 @@ class DurableLiveProcurementFacade:
                     "delivery_status": "SENT_TO_GATEWAY",
                     "message": "Envio manual registrado; aguardando abertura do fornecedor",
                 }
-                _remember_facade(
-                    _store(uow), operation, idempotency_key, payload, result
-                )
+                _remember_facade(_store(uow), operation, idempotency_key, payload, result)
                 uow.commit()
             return ManualSendReceipt(
                 external_id=external_id,
@@ -780,17 +774,14 @@ class DurableLiveProcurementFacade:
                 == procurement_request_id
                 and getattr(record.get("dto"), "rfq_round_id", None) in round_ids
             ]
-            comparison_ids = {
-                str(comparison.comparison_id) for comparison in comparisons
-            }
+            comparison_ids = {str(comparison.comparison_id) for comparison in comparisons}
             approvals = [
                 record["dto"]
                 for record in store.approvals.values()
                 if isinstance(record, Mapping)
                 and getattr(record.get("dto"), "procurement_request_id", None)
                 == procurement_request_id
-                and getattr(record.get("dto"), "comparison_id", None)
-                in comparison_ids
+                and getattr(record.get("dto"), "comparison_id", None) in comparison_ids
             ]
             approval_ids = {str(approval.approval_id) for approval in approvals}
             awards = [
@@ -892,8 +883,7 @@ class DurableLiveProcurementFacade:
                 ),
                 delivery_count=len(recipients),
                 valid_quote_count=sum(
-                    str(quote.status) == "FINAL" and bool(quote.eligible)
-                    for quote in quotes
+                    str(quote.status) == "FINAL" and bool(quote.eligible) for quote in quotes
                 ),
                 quote_count=len(quotes),
                 clarification_count=len(clarification_events),
@@ -902,17 +892,11 @@ class DurableLiveProcurementFacade:
                     str(latest_approval.status) if latest_approval is not None else None
                 ),
                 approval_actor_display_name=(
-                    _approval_actor(latest_approval, actor)
-                    if latest_approval is not None
-                    else None
+                    _approval_actor(latest_approval, actor) if latest_approval is not None else None
                 ),
-                award_status=(
-                    str(latest_award.status) if latest_award is not None else None
-                ),
+                award_status=(str(latest_award.status) if latest_award is not None else None),
                 reservation_status=(
-                    str(latest_award.reservation_status)
-                    if latest_award is not None
-                    else None
+                    str(latest_award.reservation_status) if latest_award is not None else None
                 ),
                 comparison_ids=tuple(
                     str(comparison.comparison_id)
@@ -1021,13 +1005,9 @@ class DurableLiveProcurementFacade:
                             for component in candidate.score_components
                         ),
                         disqualification_reasons=tuple(
-                            dict.fromkeys(
-                                (*candidate.disqualification_reasons, *quote_errors)
-                            )
+                            dict.fromkeys((*candidate.disqualification_reasons, *quote_errors))
                         ),
-                        risks=tuple(
-                            dict.fromkeys((*candidate.risks, *quote_risks))
-                        ),
+                        risks=tuple(dict.fromkeys((*candidate.risks, *quote_risks))),
                         evidence_refs=tuple(candidate.evidence_refs),
                     )
                 )
@@ -1041,9 +1021,7 @@ class DurableLiveProcurementFacade:
                 quote_collection_version=comparison.quote_collection_version,
                 status=str(comparison.status),
                 recommended_quote_id=(recommended.quote_id if recommended else None),
-                recommended_quote_version=(
-                    recommended.quote_version if recommended else None
-                ),
+                recommended_quote_version=(recommended.quote_version if recommended else None),
                 created_at=comparison.created_at,
                 requirements=_comparison_requirements(requirements),
                 ranking_weights=dict(policy.ranking_weights),
@@ -1166,10 +1144,9 @@ def _round_belongs_to_request(
     if not isinstance(record, Mapping):
         return False
     dto = record.get("dto")
-    return (
-        getattr(dto, "procurement_request_id", None) == procurement_request_id
-        and hmac.compare_digest(str(record.get("tenant_id", "")), tenant_id)
-    )
+    return getattr(
+        dto, "procurement_request_id", None
+    ) == procurement_request_id and hmac.compare_digest(str(record.get("tenant_id", "")), tenant_id)
 
 
 def _latest(items: list[Any], timestamp_attribute: str) -> Any | None:
@@ -1470,19 +1447,13 @@ def _clarification_message(code: str) -> str:
         "AVAILABILITY_NOT_CONFIRMED": "Confirme a disponibilidade para a data solicitada.",
         "BUDGET_LIMIT_EXCEEDED": "Revise o valor para respeitar o orçamento máximo.",
         "INVOICE_REQUIREMENT_NOT_MET": "Confirme a emissão de nota fiscal.",
-        "VEGETARIAN_REQUIREMENT_NOT_CONFIRMED": (
-            "Confirme o atendimento das opções vegetarianas."
-        ),
+        "VEGETARIAN_REQUIREMENT_NOT_CONFIRMED": ("Confirme o atendimento das opções vegetarianas."),
         "VEGAN_REQUIREMENT_NOT_CONFIRMED": "Confirme o atendimento das opções veganas.",
-        "GLUTEN_FREE_REQUIREMENT_NOT_CONFIRMED": (
-            "Confirme o atendimento das opções sem glúten."
-        ),
+        "GLUTEN_FREE_REQUIREMENT_NOT_CONFIRMED": ("Confirme o atendimento das opções sem glúten."),
         "NO_SINGLE_USE_PLASTIC_REQUIREMENT_NOT_MET": (
             "Confirme que a entrega não usará plástico descartável."
         ),
-        "CROSS_CONTAMINATION_INFORMATION_MISSING": (
-            "Informe o risco de contaminação cruzada."
-        ),
+        "CROSS_CONTAMINATION_INFORMATION_MISSING": ("Informe o risco de contaminação cruzada."),
     }
     return messages.get(code, f"Revise o item indicado: {code}")
 

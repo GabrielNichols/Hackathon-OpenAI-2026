@@ -121,9 +121,7 @@ class ManualLinkDeliveryRow(Base):
     message_type: Mapped[str] = mapped_column(String(80), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     public_link: Mapped[str] = mapped_column(Text, nullable=False)
-    response_token_digest: Mapped[str] = mapped_column(
-        String(64), nullable=False, unique=True
-    )
+    response_token_digest: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     metadata_data: Mapped[Any] = mapped_column(JSON, nullable=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)

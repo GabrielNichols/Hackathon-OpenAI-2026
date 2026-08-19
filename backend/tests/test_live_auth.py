@@ -54,9 +54,7 @@ def test_operator_token_cannot_approve_and_actor_id_cannot_be_declared():
 
 def test_browser_basic_auth_is_bound_to_the_configured_identity():
     authenticator = ConfiguredActorAuthenticator(settings())
-    credential = base64.b64encode(
-        f"buyer_gabriel:{'a' * 32}".encode()
-    ).decode()
+    credential = base64.b64encode(f"buyer_gabriel:{'a' * 32}".encode()).decode()
 
     actor = authenticator.authenticate(
         f"Basic {credential}",

@@ -88,14 +88,10 @@ async def test_authenticated_dev3_workflow_creates_durable_dev4_round(tmp_path) 
         assert uow.store is not None
         round_record = uow.store.rounds[sourced["rfq_round_id"]]
         assert round_record["tenant_id"] == settings.tenant_id
-        assert (
-            round_record["dto"].procurement_request_id
-            == request_view["request_id"]
-        )
+        assert round_record["dto"].procurement_request_id == request_view["request_id"]
         assert len(round_record["recipient_ids"]) >= 2
         recipients = [
-            uow.store.recipients[recipient_id]
-            for recipient_id in round_record["recipient_ids"]
+            uow.store.recipients[recipient_id] for recipient_id in round_record["recipient_ids"]
         ]
         assert all(item["status"] == "SENT_TO_GATEWAY" for item in recipients)
         assert all(item["external_id"] is not None for item in recipients)

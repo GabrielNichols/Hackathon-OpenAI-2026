@@ -447,9 +447,7 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
     assert award_page.terms_snapshot.total_cents == award.approved_total_cents
     assert award_page.terms_snapshot.included_items == ("café", "salgados", "frutas")
     assert award_page.terms_snapshot.substitutions == ()
-    assert award_page.terms_snapshot.cancellation_terms == (
-        "Sem custo até 24 horas antes"
-    )
+    assert award_page.terms_snapshot.cancellation_terms == ("Sem custo até 24 horas antes")
     rendered_award = await _get(
         app,
         f"/live/supplier/awards/{award_capability}",
@@ -461,9 +459,7 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
     assert "frutas" in rendered_award.text
     assert "Sem custo até 24 horas antes" in rendered_award.text
     assert award_page.terms_snapshot_hash in rendered_award.text
-    assert _hidden(rendered_award.text, "terms_snapshot_hash") == (
-        award_page.terms_snapshot_hash
-    )
+    assert _hidden(rendered_award.text, "terms_snapshot_hash") == (award_page.terms_snapshot_hash)
 
     accepted = await facade.respond_to_award(
         award_capability,
@@ -518,9 +514,7 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
     persisted_pii_hashes: list[str] = []
     with restarted_app.state.live_runtime.uow_factory() as uow:
         assert uow.store is not None
-        assert uow.store.procurement_status[procurement_request_id] == (
-            "READY_FOR_CONTRACTING"
-        )
+        assert uow.store.procurement_status[procurement_request_id] == ("READY_FOR_CONTRACTING")
         alpha_recipient = next(
             item
             for item in uow.store.recipients.values()
@@ -531,9 +525,7 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
         internal_response_tokens.extend(
             item["response_token"] for item in uow.store.recipients.values()
         )
-        internal_response_tokens.append(
-            uow.store.awards[award.award_id]["response_token"]
-        )
+        internal_response_tokens.append(uow.store.awards[award.award_id]["response_token"])
         audit_types = {event.event_type for event in uow.store.audit_events}
         assert {
             "CLARIFICATION_ANSWERED",
@@ -543,13 +535,9 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
             "CAPACITY_RESERVED",
             "PROCUREMENT_READY_FOR_CONTRACTING",
         } <= audit_types
-        manual_repository, _gateway, _service = restarted_app.state.live_runtime.build(
-            uow
-        )
+        manual_repository, _gateway, _service = restarted_app.state.live_runtime.build(uow)
         for manual_record in await manual_repository.list_records():
-            for activity in await manual_repository.list_activities(
-                manual_record.external_id
-            ):
+            for activity in await manual_repository.list_activities(manual_record.external_id):
                 persisted_pii_hashes.extend(
                     str(value)
                     for key, value in activity.metadata.items()
@@ -593,10 +581,7 @@ async def test_real_live_golden_path_survives_restart_without_simulated_dependen
     assert settings.approver_user_id in evidence_response.text
     assert "ACCEPTED" in evidence_response.text
     assert "CONFIRMED" in evidence_response.text
-    assert (
-        f'/live/operator/comparisons/{comparison.comparison_id}'
-        in evidence_response.text
-    )
+    assert f"/live/operator/comparisons/{comparison.comparison_id}" in evidence_response.text
     timeline_order = [
         evidence_response.text.index(event_type)
         for event_type in (

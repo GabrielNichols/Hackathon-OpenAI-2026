@@ -44,9 +44,7 @@ def test_audit_contract_keeps_legacy_rows_decodable_and_codec_preserves_trace_fi
     assert legacy.idempotency_key is None
 
     legacy_encoded = encode_state(legacy)
-    encoded_field_names = {
-        pair[0] for pair in legacy_encoded["data"]["items"]
-    }
+    encoded_field_names = {pair[0] for pair in legacy_encoded["data"]["items"]}
     assert "previous_state" not in encoded_field_names
     assert "new_state" not in encoded_field_names
     assert "origin" not in encoded_field_names

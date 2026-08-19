@@ -43,9 +43,7 @@ _SENSITIVE_METADATA_KEYS = frozenset(
         "user_agent",
     }
 )
-_FORBIDDEN_LINK_QUERY_KEYS = frozenset(
-    {"access_token", "response_token", "secret", "token"}
-)
+_FORBIDDEN_LINK_QUERY_KEYS = frozenset({"access_token", "response_token", "secret", "token"})
 
 
 class SqlAlchemyManualLinkDeliveryRepository:
@@ -58,9 +56,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
 
     def __init__(self, session: Session, *, pii_hash_secret: str | bytes) -> None:
         secret = (
-            pii_hash_secret.encode("utf-8")
-            if isinstance(pii_hash_secret, str)
-            else pii_hash_secret
+            pii_hash_secret.encode("utf-8") if isinstance(pii_hash_secret, str) else pii_hash_secret
         )
         if len(secret) < 32:
             raise ValueError("pii_hash_secret must contain at least 32 bytes")
@@ -71,15 +67,11 @@ class SqlAlchemyManualLinkDeliveryRepository:
             hashlib.sha256,
         ).digest()
 
-    async def get_by_external_id(
-        self, external_id: str
-    ) -> ManualLinkDeliveryRecord | None:
+    async def get_by_external_id(self, external_id: str) -> ManualLinkDeliveryRecord | None:
         row = self.session.get(ManualLinkDeliveryRow, external_id)
         return self._to_record(row) if row is not None else None
 
-    async def get_by_idempotency_key(
-        self, idempotency_key: str
-    ) -> ManualLinkDeliveryRecord | None:
+    async def get_by_idempotency_key(self, idempotency_key: str) -> ManualLinkDeliveryRecord | None:
         row = self.session.scalar(
             select(ManualLinkDeliveryRow).where(
                 ManualLinkDeliveryRow.idempotency_key == idempotency_key
@@ -130,9 +122,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
 
     async def append_activity(self, activity: ManualDeliveryActivity) -> None:
         if self.session.get(ManualLinkDeliveryRow, activity.external_id) is None:
-            raise GatewayMessageNotFound(
-                f"Unknown gateway external_id: {activity.external_id}"
-            )
+            raise GatewayMessageNotFound(f"Unknown gateway external_id: {activity.external_id}")
         if activity.action in {
             ManualDeliveryAction.LINK_CREATED,
             ManualDeliveryAction.SUPPLIER_OPENED,
@@ -164,9 +154,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
         )
         return activity_id is not None
 
-    async def list_activities(
-        self, external_id: str
-    ) -> Sequence[ManualDeliveryActivity]:
+    async def list_activities(self, external_id: str) -> Sequence[ManualDeliveryActivity]:
         rows = self.session.scalars(
             select(ManualDeliveryActivityRow)
             .where(ManualDeliveryActivityRow.external_id == external_id)
@@ -231,9 +219,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
         if row is None:
             raise GatewayMessageNotFound(f"Unknown gateway external_id: {external_id}")
         if row.status != DeliveryState.DELIVERED.value:
-            if not await self.has_activity(
-                external_id, ManualDeliveryAction.SEND_RECORDED
-            ):
+            if not await self.has_activity(external_id, ManualDeliveryAction.SEND_RECORDED):
                 raise GatewayError(
                     "Supplier delivery cannot be confirmed before the manual send is recorded"
                 )
@@ -269,9 +255,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
             version=1,
         )
 
-    def _activity_row(
-        self, activity: ManualDeliveryActivity
-    ) -> ManualDeliveryActivityRow:
+    def _activity_row(self, activity: ManualDeliveryActivity) -> ManualDeliveryActivityRow:
         deduplication_key = None
         if activity.action in {
             ManualDeliveryAction.LINK_CREATED,
@@ -307,9 +291,7 @@ class SqlAlchemyManualLinkDeliveryRepository:
             status=DeliveryState(row.status),
             accepted_at=_from_database_datetime(row.accepted_at),
             delivered_at=(
-                _from_database_datetime(row.delivered_at)
-                if row.delivered_at is not None
-                else None
+                _from_database_datetime(row.delivered_at) if row.delivered_at is not None else None
             ),
         )
 
