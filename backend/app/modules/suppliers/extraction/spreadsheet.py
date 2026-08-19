@@ -8,7 +8,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any
 
-from openpyxl import load_workbook
+from openpyxl import load_workbook  # type: ignore[import-untyped]
 
 from .models import (
     ExtractedFieldDTO,

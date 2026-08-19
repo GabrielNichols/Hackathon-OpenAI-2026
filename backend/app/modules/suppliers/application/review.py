@@ -483,6 +483,8 @@ class SupplierReviewService:
         revision: FieldReviewRevision,
         claims: ReviewTokenClaims,
     ) -> None:
+        if revision.decision is None:
+            raise ValueError("audit requires a supplier field decision")
         event_type = {
             FieldReviewDecision.CONFIRMED: "SUPPLIER_FIELD_CONFIRMED",
             FieldReviewDecision.CORRECTED: "SUPPLIER_FIELD_CORRECTED",
@@ -546,7 +548,7 @@ class SupplierReviewService:
             event_id=self._ids.new("evt"),
             event_type=event_type,
             aggregate_id=session.supplier_id,
-            actor_type=actor_type,  # type: ignore[arg-type]
+            actor_type=actor_type,
             actor_id=actor_id,
             occurred_at=self._clock.now(),
             previous_state=previous_state,
